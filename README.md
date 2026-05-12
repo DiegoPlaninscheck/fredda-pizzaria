@@ -24,7 +24,7 @@ O **Fredda Pizzaria** é um sistema dedicado que resolve esses pontos com:
 
 | Módulo | Descrição | Status |
 |--------|-----------|--------|
-| **Autenticação** | Login, perfis de usuário | 🔄 Em desenvolvimento |
+| **Autenticação** | Login com JWT, perfis ADMIN e OPERADOR | ✅ Concluído |
 | **Estoque de insumos** | CRUD, entradas/saídas, alertas, lotes | 🔄 Em desenvolvimento |
 | **Produtos** | Catálogo, fichas técnicas, estoque de congelados | 📅 Planejado |
 | **Processo produtivo** | Ordens de produção, timer de fermentação | 📅 Planejado |
@@ -38,8 +38,8 @@ O **Fredda Pizzaria** é um sistema dedicado que resolve esses pontos com:
 |--------|-----------|
 | Frontend + Backend | [Next.js 14](https://nextjs.org/) (App Router) |
 | ORM | [Prisma](https://www.prisma.io/) |
-| Banco de dados | MySQL / MariaDB |
-| Autenticação | [NextAuth.js](https://next-auth.js.org/) |
+| Banco de dados | MySQL 8 |
+| Autenticação | [NextAuth.js](https://next-auth.js.org/) v4 (Credentials + JWT) |
 | Containerização | Docker + Docker Compose |
 | IA / Previsão | Python (FastAPI + scikit-learn) |
 | Hospedagem | VPS (DigitalOcean / Contabo) |
@@ -53,12 +53,11 @@ O **Fredda Pizzaria** é um sistema dedicado que resolve esses pontos com:
 
 - Node.js 20+
 - Docker e Docker Compose
-- MySQL 8+ (ou via Docker)
 
 ### 1. Clone o repositório
 
 ```bash
-git clone https://github.com/<seu-usuario>/fredda-pizzaria.git
+git clone https://github.com/diegoplaninscheck/fredda-pizzaria.git
 cd fredda-pizzaria
 ```
 
@@ -68,12 +67,10 @@ cd fredda-pizzaria
 cp .env.example .env
 ```
 
-Edite o `.env` com suas credenciais:
+Edite o `.env` e gere uma chave secreta:
 
-```env
-DATABASE_URL="mysql://user:password@localhost:3306/fredda_pizzaria"
-NEXTAUTH_SECRET="sua-chave-secreta"
-NEXTAUTH_URL="http://localhost:3000"
+```bash
+openssl rand -base64 32   # cole o resultado em NEXTAUTH_SECRET
 ```
 
 ### 3. Suba o banco com Docker
@@ -86,7 +83,7 @@ docker compose up -d db
 
 ```bash
 npm install
-npx prisma migrate dev
+npx prisma migrate dev --name init
 npx prisma db seed
 ```
 
@@ -97,6 +94,8 @@ npm run dev
 ```
 
 Acesse em [http://localhost:3000](http://localhost:3000)
+
+**Credenciais do seed:** `admin@freddapizzaria.com` / `admin123`
 
 ---
 
@@ -112,27 +111,45 @@ docker compose up --build
 
 ```
 fredda-pizzaria/
-├── app/                    # Next.js App Router
-│   ├── (auth)/             # Rotas de autenticação
-│   ├── (dashboard)/        # Área autenticada
-│   │   ├── estoque/        # Módulo de estoque
-│   │   ├── producao/       # Módulo de produção
-│   │   └── relatorios/     # Relatórios e KPIs
-│   └── api/                # API Routes (Next.js)
-├── components/             # Componentes React reutilizáveis
-├── lib/                    # Utilitários, Prisma client, helpers
+├── app/
+│   ├── (auth)/                     # Rotas públicas
+│   │   └── login/                  # Página de login
+│   ├── (dashboard)/                # Área autenticada (requer sessão)
+│   │   ├── dashboard/              # Dashboard com KPIs
+│   │   ├── estoque/                # Módulo de estoque (Sprint 2)
+│   │   ├── fornecedores/           # Cadastro de fornecedores
+│   │   └── categorias/             # Cadastro de categorias
+│   ├── api/
+│   │   └── auth/[...nextauth]/     # Handler NextAuth.js
+│   ├── layout.tsx                  # Layout raiz com SessionProvider
+│   └── providers.tsx               # Client providers
+├── components/
+│   └── Sidebar.tsx                 # Navegação lateral
+├── lib/
+│   ├── auth.ts                     # authOptions (NextAuth config)
+│   └── prisma.ts                   # Singleton do PrismaClient
 ├── prisma/
-│   ├── schema.prisma       # Schema do banco de dados
-│   ├── migrations/         # Histórico de migrations
-│   └── seed.ts             # Dados iniciais
-├── ai-service/             # Microservice Python (previsão de demanda)
-│   ├── main.py             # FastAPI app
-│   ├── model/              # Modelo preditivo
-│   └── requirements.txt
-├── public/                 # Assets estáticos
+│   ├── schema.prisma               # Models: User, Fornecedor, Categoria, Insumo
+│   ├── migrations/                 # Histórico de migrations
+│   └── seed.ts                     # Dados iniciais
+├── types/
+│   └── next-auth.d.ts              # Extensão de tipos (id, role na sessão)
+├── middleware.ts                   # Proteção de rotas autenticadas
 ├── docker-compose.yml
 ├── Dockerfile
 └── .env.example
+```
+
+---
+
+## 🗄️ Schema do banco de dados
+
+```prisma
+User         — id, nome, email, senha (bcrypt), role (ADMIN | OPERADOR), ativo
+Fornecedor   — id, nome, cnpj, telefone, email, endereco, ativo
+Categoria    — id, nome (unique), descricao
+Insumo       — id, nome, unidade, estoqueAtual, estoqueMinimo, precoUnitario,
+               categoriaId, fornecedorId, ativo
 ```
 
 ---
@@ -141,10 +158,11 @@ fredda-pizzaria/
 
 ### Sprint 1 — Fundação (semanas 1–2)
 - [x] Setup do repositório e README
-- [ ] Projeto Next.js + Prisma + MySQL
-- [ ] Autenticação com NextAuth.js
-- [ ] Cadastro de fornecedores e categorias
-- [ ] Deploy inicial na VPS
+- [x] Projeto Next.js 14 + TypeScript + Tailwind CSS
+- [x] Prisma ORM com schema inicial (User, Fornecedor, Categoria, Insumo)
+- [x] Autenticação com NextAuth.js (Credentials + JWT)
+- [x] Docker Compose com MySQL 8 e build standalone
+- [x] Seed inicial do banco de dados
 
 ### Sprint 2 — Estoque de insumos (semanas 3–4)
 - [ ] CRUD de insumos
@@ -172,7 +190,7 @@ fredda-pizzaria/
 
 ## 🔗 Links úteis
 
-- [Jira — Gerenciamento do projeto](#) *(em breve)*
+- [Jira — Gerenciamento do projeto](https://diegoplanichek.atlassian.net)
 - [Documentação da API](#) *(em breve)*
 - [Ambiente de produção](#) *(em breve)*
 
