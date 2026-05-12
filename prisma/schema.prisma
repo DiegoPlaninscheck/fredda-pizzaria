@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  OPERADOR
+}
+
+enum UnidadeMedida {
+  KG
+  GRAMA
+  LITRO
+  ML
+  UNIDADE
+  PACOTE
+  SACO
+  CAIXA
+}
+
+model User {
+  id        String   @id @default(cuid())
+  nome      String
+  email     String   @unique
+  senha     String
+  role      Role     @default(OPERADOR)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Fornecedor {
+  id        String   @id @default(cuid())
+  nome      String
+  cnpj      String?  @unique
+  telefone  String?
+  email     String?
+  endereco  String?
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  insumos Insumo[]
+
+  @@map("fornecedores")
+}
+
+model Categoria {
+  id        String   @id @default(cuid())
+  nome      String   @unique
+  descricao String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  insumos Insumo[]
+
+  @@map("categorias")
+}
+
+model Insumo {
+  id             String        @id @default(cuid())
+  nome           String
+  unidade        UnidadeMedida
+  estoqueAtual   Decimal       @default(0) @db.Decimal(10, 3)
+  estoqueMinimo  Decimal       @default(0) @db.Decimal(10, 3)
+  precoUnitario  Decimal?      @db.Decimal(10, 2)
+  ativo          Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  categoriaId  String
+  categoria    Categoria  @relation(fields: [categoriaId], references: [id])
+
+  fornecedorId String?
+  fornecedor   Fornecedor? @relation(fields: [fornecedorId], references: [id])
+
+  @@map("insumos")
+}
