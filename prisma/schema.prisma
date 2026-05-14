@@ -12,6 +12,11 @@ enum Role {
   OPERADOR
 }
 
+enum TipoMovimentacao {
+  ENTRADA
+  SAIDA
+}
+
 enum UnidadeMedida {
   KG
   GRAMA
@@ -33,6 +38,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  movimentacoes MovimentacaoEstoque[]
+
   @@map("users")
 }
 
@@ -47,7 +54,8 @@ model Fornecedor {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  insumos Insumo[]
+  insumos       Insumo[]
+  movimentacoes MovimentacaoEstoque[]
 
   @@map("fornecedores")
 }
@@ -81,5 +89,29 @@ model Insumo {
   fornecedorId String?
   fornecedor   Fornecedor? @relation(fields: [fornecedorId], references: [id])
 
+  movimentacoes MovimentacaoEstoque[]
+
   @@map("insumos")
+}
+
+model MovimentacaoEstoque {
+  id             String           @id @default(cuid())
+  tipo           TipoMovimentacao
+  quantidade     Decimal          @db.Decimal(10, 3)
+  motivo         String?
+  lote           String?
+  dataVencimento DateTime?
+  precoUnitario  Decimal?         @db.Decimal(10, 2)
+  createdAt      DateTime         @default(now())
+
+  insumoId     String
+  insumo       Insumo     @relation(fields: [insumoId], references: [id])
+
+  fornecedorId String?
+  fornecedor   Fornecedor? @relation(fields: [fornecedorId], references: [id])
+
+  usuarioId    String
+  usuario      User       @relation(fields: [usuarioId], references: [id])
+
+  @@map("movimentacoes_estoque")
 }
