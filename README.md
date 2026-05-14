@@ -25,9 +25,9 @@ O **Fredda Pizzaria** é um sistema dedicado que resolve esses pontos com:
 | Módulo | Descrição | Status |
 |--------|-----------|--------|
 | **Autenticação** | Login com JWT, perfis ADMIN e OPERADOR | ✅ Concluído |
-| **Estoque de insumos** | CRUD, entradas/saídas, alertas, lotes | 🔄 Em desenvolvimento |
+| **Estoque de insumos** | CRUD, entradas/saídas, alertas, lotes | ✅ Concluído |
 | **Produtos** | Catálogo, fichas técnicas, estoque de congelados | 📅 Planejado |
-| **Processo produtivo** | Ordens de produção, timer de fermentação | 📅 Planejado |
+| **Processo produtivo** | Ordens de produção, timer de fermentação | 🔄 Em desenvolvimento |
 | **Previsão de demanda** | Modelo preditivo, sugestão de produção | 📅 Planejado |
 
 ---
@@ -83,7 +83,7 @@ docker compose up -d db
 
 ```bash
 npm install
-npx prisma migrate dev --name init
+npx prisma migrate dev
 npx prisma db seed
 ```
 
@@ -115,12 +115,18 @@ fredda-pizzaria/
 │   ├── (auth)/                     # Rotas públicas
 │   │   └── login/                  # Página de login
 │   ├── (dashboard)/                # Área autenticada (requer sessão)
-│   │   ├── dashboard/              # Dashboard com KPIs
-│   │   ├── estoque/                # Módulo de estoque (Sprint 2)
-│   │   ├── fornecedores/           # Cadastro de fornecedores
-│   │   └── categorias/             # Cadastro de categorias
+│   │   ├── dashboard/              # Dashboard com KPIs reais
+│   │   ├── estoque/                # Lista, detalhe, novo insumo
+│   │   │   └── [id]/               # Detalhe + movimentação (entrada/saída)
+│   │   ├── fornecedores/           # Lista, novo, editar fornecedor
+│   │   │   └── [id]/editar/
+│   │   └── categorias/             # CRUD inline de categorias
 │   ├── api/
-│   │   └── auth/[...nextauth]/     # Handler NextAuth.js
+│   │   ├── auth/[...nextauth]/     # Handler NextAuth.js
+│   │   ├── categorias/             # GET, POST, PUT, DELETE
+│   │   ├── fornecedores/           # GET (busca+filtro), POST, PUT, DELETE
+│   │   └── insumos/                # GET (filtros), POST, PUT, DELETE
+│   │       └── [id]/movimentacoes/ # Histórico e registro de movimentações
 │   ├── layout.tsx                  # Layout raiz com SessionProvider
 │   └── providers.tsx               # Client providers
 ├── components/
@@ -129,7 +135,7 @@ fredda-pizzaria/
 │   ├── auth.ts                     # authOptions (NextAuth config)
 │   └── prisma.ts                   # Singleton do PrismaClient
 ├── prisma/
-│   ├── schema.prisma               # Models: User, Fornecedor, Categoria, Insumo
+│   ├── schema.prisma               # Models: User, Fornecedor, Categoria, Insumo, MovimentacaoEstoque
 │   ├── migrations/                 # Histórico de migrations
 │   └── seed.ts                     # Dados iniciais
 ├── types/
@@ -145,11 +151,13 @@ fredda-pizzaria/
 ## 🗄️ Schema do banco de dados
 
 ```prisma
-User         — id, nome, email, senha (bcrypt), role (ADMIN | OPERADOR), ativo
-Fornecedor   — id, nome, cnpj, telefone, email, endereco, ativo
-Categoria    — id, nome (unique), descricao
-Insumo       — id, nome, unidade, estoqueAtual, estoqueMinimo, precoUnitario,
-               categoriaId, fornecedorId, ativo
+User                 — id, nome, email, senha (bcrypt), role (ADMIN | OPERADOR), ativo
+Fornecedor           — id, nome, cnpj, telefone, email, endereco, ativo
+Categoria            — id, nome (unique), descricao
+Insumo               — id, nome, unidade, estoqueAtual, estoqueMinimo, precoUnitario,
+                       categoriaId, fornecedorId, ativo
+MovimentacaoEstoque  — id, tipo (ENTRADA | SAIDA), quantidade, lote, dataVencimento,
+                       precoUnitario, motivo, insumoId, fornecedorId, usuarioId
 ```
 
 ---
@@ -165,15 +173,18 @@ Insumo       — id, nome, unidade, estoqueAtual, estoqueMinimo, precoUnitario,
 - [x] Seed inicial do banco de dados
 
 ### Sprint 2 — Estoque de insumos (semanas 3–4)
-- [ ] CRUD de insumos
-- [ ] Registro de entradas e saídas
-- [ ] Rastreabilidade de lotes
-- [ ] Alertas de estoque mínimo
+- [x] CRUD de categorias e fornecedores
+- [x] CRUD de insumos com unidade de medida e estoque mínimo
+- [x] Registro de entradas e saídas com rastreabilidade de lotes
+- [x] Alertas de estoque mínimo no dashboard e na listagem
+- [x] Dashboard com KPIs reais (total de insumos, alertas, fornecedores ativos)
 
 ### Sprint 3 — Processo produtivo (semanas 5–6)
 - [ ] Ordens de produção
 - [ ] Timer de fermentação por etapas
 - [ ] Registro de temperatura e ambiente
+
+> 🔄 Em desenvolvimento
 
 ### Sprint 4 — Dados e planejamento (semanas 7–8)
 - [ ] Registro de vendas
