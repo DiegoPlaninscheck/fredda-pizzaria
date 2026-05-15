@@ -26,8 +26,8 @@ O **Fredda Pizzaria** é um sistema dedicado que resolve esses pontos com:
 |--------|-----------|--------|
 | **Autenticação** | Login com JWT, perfis ADMIN e OPERADOR | ✅ Concluído |
 | **Estoque de insumos** | CRUD, entradas/saídas, alertas, lotes | ✅ Concluído |
-| **Produtos** | Catálogo, fichas técnicas, estoque de congelados | 📅 Planejado |
-| **Processo produtivo** | Ordens de produção, timer de fermentação | 🔄 Em desenvolvimento |
+| **Receitas** | Fichas técnicas com ingredientes e rendimento | ✅ Concluído |
+| **Processo produtivo** | Ordens de produção, timers de fermentação, condições ambientais | ✅ Concluído |
 | **Previsão de demanda** | Modelo preditivo, sugestão de produção | 📅 Planejado |
 
 ---
@@ -116,6 +116,11 @@ fredda-pizzaria/
 │   │   └── login/                  # Página de login
 │   ├── (dashboard)/                # Área autenticada (requer sessão)
 │   │   ├── dashboard/              # Dashboard com KPIs reais
+│   │   ├── producao/               # Painel de ordens de produção
+│   │   │   ├── nova/               # Criar nova ordem com verificação de estoque
+│   │   │   └── [id]/               # Detalhe da ordem + timers de fermentação
+│   │   ├── receitas/               # Lista de fichas técnicas
+│   │   │   └── nova/               # Criar/editar receita com ingredientes
 │   │   ├── estoque/                # Lista, detalhe, novo insumo
 │   │   │   └── [id]/               # Detalhe + movimentação (entrada/saída)
 │   │   ├── fornecedores/           # Lista, novo, editar fornecedor
@@ -125,8 +130,12 @@ fredda-pizzaria/
 │   │   ├── auth/[...nextauth]/     # Handler NextAuth.js
 │   │   ├── categorias/             # GET, POST, PUT, DELETE
 │   │   ├── fornecedores/           # GET (busca+filtro), POST, PUT, DELETE
-│   │   └── insumos/                # GET (filtros), POST, PUT, DELETE
-│   │       └── [id]/movimentacoes/ # Histórico e registro de movimentações
+│   │   ├── insumos/                # GET (filtros), POST, PUT, DELETE
+│   │   │   └── [id]/movimentacoes/ # Histórico e registro de movimentações
+│   │   ├── receitas/               # GET, POST, PUT, DELETE (soft)
+│   │   └── ordens/                 # GET, POST, PATCH
+│   │       └── [id]/etapas/[etapaId]/
+│   │           └── condicoes/      # Registro de temperatura, umidade, observações
 │   ├── layout.tsx                  # Layout raiz com SessionProvider
 │   └── providers.tsx               # Client providers
 ├── components/
@@ -158,9 +167,18 @@ Insumo               — id, nome, unidade, estoqueAtual, estoqueMinimo, precoUn
                        categoriaId, fornecedorId, ativo
 MovimentacaoEstoque  — id, tipo (ENTRADA | SAIDA), quantidade, lote, dataVencimento,
                        precoUnitario, motivo, insumoId, fornecedorId, usuarioId
+
+Receita              — id, nome, descricao, rendimento (Decimal), ativo
+ReceitaInsumo        — id, receitaId, insumoId, quantidade (Decimal); unique(receitaId,insumoId)
+OrdemProducao        — id, status (PLANEJADA|EM_ANDAMENTO|PAUSADA|CONCLUIDA|CANCELADA),
+                       quantidade, dataPrevista, observacoes, receitaId, usuarioId
+EtapaFermentacao     — id, nome (MISTURA|DESCANSO_INICIAL|FERMENTACAO_LONGA|MODELAGEM|CONGELAMENTO),
+                       ordem, status (PENDENTE|EM_ANDAMENTO|PAUSADA|CONCLUIDA),
+                       duracaoMinutos, minutosDecorridos, iniciadaEm, concluidaEm, ordemId
+RegistroCondicoes    — id, temperatura, umidade, observacoes, createdAt, etapaId
 ```
 
-> **Atenção:** após clonar o repositório, execute `npx prisma migrate dev` para aplicar todas as migrations, incluindo o campo `ativo` adicionado ao model `Categoria`.
+> **Atenção:** após clonar o repositório, execute `npx prisma migrate dev` para aplicar todas as migrations.
 
 ---
 
@@ -185,11 +203,15 @@ MovimentacaoEstoque  — id, tipo (ENTRADA | SAIDA), quantidade, lote, dataVenci
 - [x] Dashboard com KPIs reais (total de insumos, alertas, fornecedores ativos)
 
 ### Sprint 3 — Processo produtivo (semanas 5–6)
-- [ ] Ordens de produção
-- [ ] Timer de fermentação por etapas
-- [ ] Registro de temperatura e ambiente
-
-> 🔄 Em desenvolvimento
+- [x] Fichas técnicas de receitas com ingredientes por unidade e rendimento por lote
+- [x] CRUD de receitas com soft delete e vínculo com ordens
+- [x] Ordens de produção com seleção de receita, quantidade e data prevista
+- [x] Validação de estoque ao criar ordem (bloqueia com lista de insumos insuficientes)
+- [x] 5 etapas de fermentação padrão criadas automaticamente por ordem (Mistura, Descanso, Fermentação longa, Modelagem, Congelamento)
+- [x] Timer de fermentação por etapa com Iniciar / Pausar / Concluir (tempo acumulado persistido)
+- [x] Registro de condições ambientais (temperatura, umidade, observações) por etapa
+- [x] Painel de ordens com filtro por status, barra de progresso e atualização automática (15s)
+- [x] Sidebar com navegação para Produção e Receitas
 
 ### Sprint 4 — Dados e planejamento (semanas 7–8)
 - [ ] Registro de vendas

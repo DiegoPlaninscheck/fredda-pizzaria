@@ -7,6 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
 enum Role {
   ADMIN
   OPERADOR
@@ -28,6 +30,31 @@ enum UnidadeMedida {
   CAIXA
 }
 
+enum StatusOrdem {
+  PLANEJADA
+  EM_ANDAMENTO
+  PAUSADA
+  CONCLUIDA
+  CANCELADA
+}
+
+enum StatusEtapa {
+  PENDENTE
+  EM_ANDAMENTO
+  PAUSADA
+  CONCLUIDA
+}
+
+enum NomeEtapa {
+  MISTURA
+  DESCANSO_INICIAL
+  FERMENTACAO_LONGA
+  MODELAGEM
+  CONGELAMENTO
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
 model User {
   id        String   @id @default(cuid())
   nome      String
@@ -39,6 +66,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   movimentacoes MovimentacaoEstoque[]
+  ordens        OrdemProducao[]
 
   @@map("users")
 }
@@ -74,23 +102,24 @@ model Categoria {
 }
 
 model Insumo {
-  id             String        @id @default(cuid())
-  nome           String
-  unidade        UnidadeMedida
-  estoqueAtual   Decimal       @default(0) @db.Decimal(10, 3)
-  estoqueMinimo  Decimal       @default(0) @db.Decimal(10, 3)
-  precoUnitario  Decimal?      @db.Decimal(10, 2)
-  ativo          Boolean       @default(true)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id            String        @id @default(cuid())
+  nome          String
+  unidade       UnidadeMedida
+  estoqueAtual  Decimal       @default(0) @db.Decimal(10, 3)
+  estoqueMinimo Decimal       @default(0) @db.Decimal(10, 3)
+  precoUnitario Decimal?      @db.Decimal(10, 2)
+  ativo         Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
-  categoriaId  String
-  categoria    Categoria  @relation(fields: [categoriaId], references: [id])
+  categoriaId String
+  categoria   Categoria  @relation(fields: [categoriaId], references: [id])
 
   fornecedorId String?
   fornecedor   Fornecedor? @relation(fields: [fornecedorId], references: [id])
 
-  movimentacoes MovimentacaoEstoque[]
+  movimentacoes  MovimentacaoEstoque[]
+  receitaInsumos ReceitaInsumo[]
 
   @@map("insumos")
 }
@@ -105,14 +134,96 @@ model MovimentacaoEstoque {
   precoUnitario  Decimal?         @db.Decimal(10, 2)
   createdAt      DateTime         @default(now())
 
-  insumoId     String
-  insumo       Insumo     @relation(fields: [insumoId], references: [id])
+  insumoId String
+  insumo   Insumo @relation(fields: [insumoId], references: [id])
 
   fornecedorId String?
   fornecedor   Fornecedor? @relation(fields: [fornecedorId], references: [id])
 
-  usuarioId    String
-  usuario      User       @relation(fields: [usuarioId], references: [id])
+  usuarioId String
+  usuario   User   @relation(fields: [usuarioId], references: [id])
 
   @@map("movimentacoes_estoque")
+}
+
+// ─── Produção ─────────────────────────────────────────────────────────────────
+
+model Receita {
+  id         String   @id @default(cuid())
+  nome       String
+  descricao  String?
+  rendimento Decimal  @db.Decimal(10, 3) // unidades produzidas por lote
+  ativo      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  insumos ReceitaInsumo[]
+  ordens  OrdemProducao[]
+
+  @@map("receitas")
+}
+
+model ReceitaInsumo {
+  id         String  @id @default(cuid())
+  quantidade Decimal @db.Decimal(10, 3) // quantidade por unidade de rendimento
+
+  receitaId String
+  receita   Receita @relation(fields: [receitaId], references: [id], onDelete: Cascade)
+
+  insumoId String
+  insumo   Insumo @relation(fields: [insumoId], references: [id])
+
+  @@unique([receitaId, insumoId])
+  @@map("receita_insumos")
+}
+
+model OrdemProducao {
+  id           String      @id @default(cuid())
+  status       StatusOrdem @default(PLANEJADA)
+  quantidade   Decimal     @db.Decimal(10, 3)
+  dataPrevista DateTime?
+  observacoes  String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  receitaId String
+  receita   Receita @relation(fields: [receitaId], references: [id])
+
+  usuarioId String
+  usuario   User   @relation(fields: [usuarioId], references: [id])
+
+  etapas EtapaFermentacao[]
+
+  @@map("ordens_producao")
+}
+
+model EtapaFermentacao {
+  id                String      @id @default(cuid())
+  nome              NomeEtapa
+  ordem             Int
+  status            StatusEtapa @default(PENDENTE)
+  duracaoMinutos    Int
+  minutosDecorridos Int         @default(0)
+  iniciadaEm        DateTime?
+  concluidaEm       DateTime?
+
+  ordemId String
+  ordem_producao OrdemProducao @relation(fields: [ordemId], references: [id], onDelete: Cascade)
+
+  registros RegistroCondicoes[]
+
+  @@map("etapas_fermentacao")
+}
+
+model RegistroCondicoes {
+  id          String   @id @default(cuid())
+  temperatura Decimal? @db.Decimal(5, 2)
+  umidade     Decimal? @db.Decimal(5, 2)
+  observacoes String?
+  createdAt   DateTime @default(now())
+
+  etapaId String
+  etapa   EtapaFermentacao @relation(fields: [etapaId], references: [id], onDelete: Cascade)
+
+  @@map("registros_condicoes")
 }

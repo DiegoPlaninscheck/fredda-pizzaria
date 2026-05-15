@@ -17,6 +17,8 @@ export default function Sidebar() {
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard' },
+    { href: '/producao', label: 'Produção' },
+    { href: '/receitas', label: 'Receitas' },
     { href: '/estoque', label: 'Estoque', badge: alertas > 0 ? alertas : undefined },
     { href: '/fornecedores', label: 'Fornecedores' },
     { href: '/categorias', label: 'Categorias' },
@@ -34,7 +36,7 @@ export default function Sidebar() {
             key={href}
             href={href}
             className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              pathname === href
+              pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
                 ? 'bg-orange-50 text-orange-700'
                 : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
             }`}
