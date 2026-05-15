@@ -152,13 +152,15 @@ fredda-pizzaria/
 
 ```prisma
 User                 — id, nome, email, senha (bcrypt), role (ADMIN | OPERADOR), ativo
-Fornecedor           — id, nome, cnpj, telefone, email, endereco, ativo
-Categoria            — id, nome (unique), descricao
+Fornecedor           — id, nome, cnpj (só dígitos, validado), telefone, email, endereco, ativo
+Categoria            — id, nome (unique), descricao, ativo
 Insumo               — id, nome, unidade, estoqueAtual, estoqueMinimo, precoUnitario,
                        categoriaId, fornecedorId, ativo
 MovimentacaoEstoque  — id, tipo (ENTRADA | SAIDA), quantidade, lote, dataVencimento,
                        precoUnitario, motivo, insumoId, fornecedorId, usuarioId
 ```
+
+> **Atenção:** após clonar o repositório, execute `npx prisma migrate dev` para aplicar todas as migrations, incluindo o campo `ativo` adicionado ao model `Categoria`.
 
 ---
 
@@ -173,10 +175,13 @@ MovimentacaoEstoque  — id, tipo (ENTRADA | SAIDA), quantidade, lote, dataVenci
 - [x] Seed inicial do banco de dados
 
 ### Sprint 2 — Estoque de insumos (semanas 3–4)
-- [x] CRUD de categorias e fornecedores
+- [x] CRUD de categorias (com ativar/inativar) e fornecedores
+- [x] Validação de CNPJ (dígitos verificadores) no cadastro de fornecedores
 - [x] CRUD de insumos com unidade de medida e estoque mínimo
-- [x] Registro de entradas e saídas com rastreabilidade de lotes
-- [x] Alertas de estoque mínimo no dashboard e na listagem
+- [x] Registro de entradas com número de lote e data de validade (geração automática de lote)
+- [x] Registro de saídas com validação de saldo suficiente (impede estoque negativo)
+- [x] Histórico de movimentações com filtros por tipo e período, saldo acumulado e exportação CSV
+- [x] Alertas de estoque mínimo no dashboard, na listagem e badge na navegação lateral
 - [x] Dashboard com KPIs reais (total de insumos, alertas, fornecedores ativos)
 
 ### Sprint 3 — Processo produtivo (semanas 5–6)

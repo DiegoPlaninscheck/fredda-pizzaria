@@ -6,6 +6,7 @@ interface Categoria {
   id: string
   nome: string
   descricao: string | null
+  ativo: boolean
   _count: { insumos: number }
 }
 
@@ -13,6 +14,7 @@ export default function CategoriasPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState('')
+  const [incluirInativas, setIncluirInativas] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editando, setEditando] = useState<Categoria | null>(null)
   const [nome, setNome] = useState('')
@@ -22,13 +24,13 @@ export default function CategoriasPage() {
 
   async function carregarCategorias() {
     setLoading(true)
-    const res = await fetch('/api/categorias')
+    const res = await fetch(`/api/categorias?incluirInativas=${incluirInativas}`)
     if (res.ok) setCategorias(await res.json())
     else setErro('Erro ao carregar categorias')
     setLoading(false)
   }
 
-  useEffect(() => { carregarCategorias() }, [])
+  useEffect(() => { carregarCategorias() }, [incluirInativas])
 
   function abrirNovo() {
     setEditando(null)
@@ -77,19 +79,24 @@ export default function CategoriasPage() {
     setSalvando(false)
   }
 
-  async function excluir(cat: Categoria) {
+  async function inativar(cat: Categoria) {
     if (cat._count.insumos > 0) {
-      alert(`Não é possível excluir: categoria possui ${cat._count.insumos} insumo(s) vinculado(s).`)
+      alert(`Não é possível inativar: categoria possui ${cat._count.insumos} insumo(s) ativo(s) vinculado(s).`)
       return
     }
-    if (!confirm(`Excluir categoria "${cat.nome}"?`)) return
-
+    if (!confirm(`Inativar categoria "${cat.nome}"?`)) return
     const res = await fetch(`/api/categorias/${cat.id}`, { method: 'DELETE' })
     if (res.ok) carregarCategorias()
     else {
       const data = await res.json()
-      alert(data.error || 'Erro ao excluir')
+      alert(data.error || 'Erro ao inativar')
     }
+  }
+
+  async function reativar(cat: Categoria) {
+    if (!confirm(`Reativar categoria "${cat.nome}"?`)) return
+    const res = await fetch(`/api/categorias/${cat.id}`, { method: 'PATCH' })
+    if (res.ok) carregarCategorias()
   }
 
   return (
@@ -99,12 +106,23 @@ export default function CategoriasPage() {
           <h1 className="text-2xl font-bold text-gray-900">Categorias</h1>
           <p className="text-sm text-gray-500 mt-1">Organize os insumos por categoria</p>
         </div>
-        <button
-          onClick={abrirNovo}
-          className="bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-        >
-          + Nova Categoria
-        </button>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={incluirInativas}
+              onChange={(e) => setIncluirInativas(e.target.checked)}
+              className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+            />
+            Mostrar inativas
+          </label>
+          <button
+            onClick={abrirNovo}
+            className="bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            + Nova Categoria
+          </button>
+        </div>
       </div>
 
       {showForm && (
@@ -162,7 +180,7 @@ export default function CategoriasPage() {
         <p className="text-red-600 text-sm">{erro}</p>
       ) : categorias.length === 0 ? (
         <div className="text-center py-12 text-gray-400">
-          <p className="text-lg">Nenhuma categoria cadastrada</p>
+          <p className="text-lg">Nenhuma categoria encontrada</p>
           <p className="text-sm mt-1">Clique em &quot;Nova Categoria&quot; para começar</p>
         </div>
       ) : (
@@ -173,28 +191,45 @@ export default function CategoriasPage() {
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nome</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Descrição</th>
                 <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Insumos</th>
+                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {categorias.map((cat) => (
-                <tr key={cat.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={cat.id} className={`hover:bg-gray-50 transition-colors ${!cat.ativo ? 'opacity-60' : ''}`}>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">{cat.nome}</td>
                   <td className="px-6 py-4 text-sm text-gray-500">{cat.descricao || '—'}</td>
                   <td className="px-6 py-4 text-sm text-center text-gray-700">{cat._count.insumos}</td>
+                  <td className="px-6 py-4 text-center">
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${cat.ativo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                      {cat.ativo ? 'Ativa' : 'Inativa'}
+                    </span>
+                  </td>
                   <td className="px-6 py-4 text-right space-x-3">
-                    <button
-                      onClick={() => abrirEditar(cat)}
-                      className="text-sm text-orange-600 hover:text-orange-800 font-medium"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => excluir(cat)}
-                      className="text-sm text-red-500 hover:text-red-700 font-medium"
-                    >
-                      Excluir
-                    </button>
+                    {cat.ativo ? (
+                      <>
+                        <button
+                          onClick={() => abrirEditar(cat)}
+                          className="text-sm text-orange-600 hover:text-orange-800 font-medium"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => inativar(cat)}
+                          className="text-sm text-red-500 hover:text-red-700 font-medium"
+                        >
+                          Inativar
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => reativar(cat)}
+                        className="text-sm text-green-600 hover:text-green-800 font-medium"
+                      >
+                        Reativar
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
