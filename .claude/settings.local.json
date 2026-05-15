@@ -1,7 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "mcp__claude_ai_Atlassian_Rovo__getVisibleJiraProjects"
+      "mcp__claude_ai_Atlassian_Rovo__getVisibleJiraProjects",
+      "mcp__claude_ai_Atlassian_Rovo__searchJiraIssuesUsingJql",
+      "mcp__claude_ai_Atlassian_Rovo__getTransitionsForJiraIssue",
+      "mcp__claude_ai_Atlassian_Rovo__transitionJiraIssue",
+      "mcp__claude_ai_Atlassian_Rovo__getJiraIssue",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Usuario\\\\Documents\\\\GitHub\\\\fredda-pizzaria\" -Recurse -Exclude \".git\",\"node_modules\" -File)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
