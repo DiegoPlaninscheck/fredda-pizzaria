@@ -15,6 +15,8 @@ O **Fredda Pizzaria** é um sistema dedicado que resolve esses pontos com:
 
 - Controle completo de estoque de insumos com rastreabilidade de lotes
 - Ordens de produção com timer de fermentação por etapa
+- Estoque de produto pronto por sabor, atualizado automaticamente por produção e vendas
+- Registro de vendas com controle de pagamento e entrega
 - Dashboard operacional com KPIs em tempo real
 - Previsão de demanda semanal com modelo de IA treinado com dados históricos
 
@@ -28,6 +30,7 @@ O **Fredda Pizzaria** é um sistema dedicado que resolve esses pontos com:
 | **Estoque de insumos** | CRUD, entradas/saídas, alertas, lotes | ✅ Concluído |
 | **Receitas** | Fichas técnicas com ingredientes e rendimento | ✅ Concluído |
 | **Processo produtivo** | Ordens de produção, timers de fermentação, condições ambientais | ✅ Concluído |
+| **Vendas e estoque de produto pronto** | Registro de vendas, baixa/reposição automática de estoque de pizzas, KPIs de faturamento | ✅ Concluído |
 | **Previsão de demanda** | Modelo preditivo, sugestão de produção | 📅 Planejado |
 
 ---
@@ -119,8 +122,10 @@ fredda-pizzaria/
 │   │   ├── producao/               # Painel de ordens de produção
 │   │   │   ├── nova/               # Criar nova ordem com verificação de estoque
 │   │   │   └── [id]/               # Detalhe da ordem + timers de fermentação
-│   │   ├── receitas/               # Lista de fichas técnicas
+│   │   ├── receitas/               # Lista de fichas técnicas (com estoque de produto pronto)
 │   │   │   └── nova/               # Criar/editar receita com ingredientes
+│   │   ├── vendas/                 # Histórico de vendas com filtros e exportação CSV
+│   │   │   └── nova/               # Registrar venda (cliente, pagamento, entrega)
 │   │   ├── estoque/                # Lista, detalhe, novo insumo
 │   │   │   └── [id]/               # Detalhe + movimentação (entrada/saída)
 │   │   ├── fornecedores/           # Lista, novo, editar fornecedor
@@ -133,7 +138,8 @@ fredda-pizzaria/
 │   │   ├── insumos/                # GET (filtros), POST, PUT, DELETE
 │   │   │   └── [id]/movimentacoes/ # Histórico e registro de movimentações
 │   │   ├── receitas/               # GET, POST, PUT, DELETE (soft)
-│   │   └── ordens/                 # GET, POST, PATCH
+│   │   ├── vendas/                 # GET (filtros), POST (baixa estoque de produto pronto)
+│   │   └── ordens/                 # GET, POST, PATCH (conclusão repõe estoque de produto pronto)
 │   │       └── [id]/etapas/[etapaId]/
 │   │           └── condicoes/      # Registro de temperatura, umidade, observações
 │   ├── layout.tsx                  # Layout raiz com SessionProvider
@@ -168,14 +174,19 @@ Insumo               — id, nome, unidade, estoqueAtual, estoqueMinimo, precoUn
 MovimentacaoEstoque  — id, tipo (ENTRADA | SAIDA), quantidade, lote, dataVencimento,
                        precoUnitario, motivo, insumoId, fornecedorId, usuarioId
 
-Receita              — id, nome, descricao, rendimento (Decimal), ativo
+Receita              — id, nome, descricao, rendimento (Decimal), estoqueAtual (Decimal, produto pronto), ativo
 ReceitaInsumo        — id, receitaId, insumoId, quantidade (Decimal); unique(receitaId,insumoId)
 OrdemProducao        — id, status (PLANEJADA|EM_ANDAMENTO|PAUSADA|CONCLUIDA|CANCELADA),
                        quantidade, dataPrevista, observacoes, receitaId, usuarioId
+                       (ao concluir, incrementa Receita.estoqueAtual)
 EtapaFermentacao     — id, nome (MISTURA|DESCANSO_INICIAL|FERMENTACAO_LONGA|MODELAGEM|CONGELAMENTO),
                        ordem, status (PENDENTE|EM_ANDAMENTO|PAUSADA|CONCLUIDA),
                        duracaoMinutos, minutosDecorridos, iniciadaEm, concluidaEm, ordemId
 RegistroCondicoes    — id, temperatura, umidade, observacoes, createdAt, etapaId
+
+Venda                — id, cliente, quantidade (Decimal), precoUnitario, valorTotal,
+                       formaPagamento, pago, entregue, dataVenda, dataEntrega, observacoes,
+                       receitaId, usuarioId (ao registrar, decrementa Receita.estoqueAtual)
 ```
 
 > **Atenção:** após clonar o repositório, execute `npx prisma migrate dev` para aplicar todas as migrations.
@@ -214,9 +225,11 @@ RegistroCondicoes    — id, temperatura, umidade, observacoes, createdAt, etapa
 - [x] Sidebar com navegação para Produção e Receitas
 
 ### Sprint 4 — Dados e planejamento (semanas 7–8)
-- [ ] Registro de vendas
-- [ ] Dashboard com KPIs
-- [ ] Exportação de dados históricos
+- [x] Registro de vendas (cliente, forma de pagamento, status de pagamento e entrega)
+- [x] Estoque de produto pronto por sabor (venda dá baixa, ordem concluída repõe)
+- [x] Dashboard com KPIs de vendas (faturamento do mês, unidades vendidas, sabor mais vendido)
+- [x] Exportação de histórico de vendas em CSV com filtros por receita e período
+- [x] Importação de dados reais de vendas/receitas/insumos a partir de planilha histórica
 
 ### Sprint 5 — IA e entrega (semanas 9–10)
 - [ ] Microservice Python com modelo preditivo
