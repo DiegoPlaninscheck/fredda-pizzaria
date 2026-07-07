@@ -93,10 +93,24 @@ export async function PATCH(req: Request, { params }: Params) {
     const pendentes = await prisma.etapaFermentacao.count({
       where: { ordemId: params.id, status: { not: 'CONCLUIDA' } },
     })
-    await prisma.ordemProducao.update({
-      where: { id: params.id },
-      data: { status: pendentes === 0 ? 'CONCLUIDA' : 'EM_ANDAMENTO' },
-    })
+
+    if (pendentes === 0) {
+      await prisma.$transaction([
+        prisma.ordemProducao.update({
+          where: { id: params.id },
+          data: { status: 'CONCLUIDA' },
+        }),
+        prisma.receita.update({
+          where: { id: etapa.ordem_producao.receitaId },
+          data: { estoqueAtual: { increment: etapa.ordem_producao.quantidade } },
+        }),
+      ])
+    } else {
+      await prisma.ordemProducao.update({
+        where: { id: params.id },
+        data: { status: 'EM_ANDAMENTO' },
+      })
+    }
   }
 
   const etapaAtualizada = await prisma.etapaFermentacao.findUnique({

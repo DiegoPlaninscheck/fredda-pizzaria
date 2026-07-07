@@ -67,6 +67,7 @@ model User {
 
   movimentacoes MovimentacaoEstoque[]
   ordens        OrdemProducao[]
+  vendas        Venda[]
 
   @@map("users")
 }
@@ -149,16 +150,18 @@ model MovimentacaoEstoque {
 // ─── Produção ─────────────────────────────────────────────────────────────────
 
 model Receita {
-  id         String   @id @default(cuid())
-  nome       String
-  descricao  String?
-  rendimento Decimal  @db.Decimal(10, 3) // unidades produzidas por lote
-  ativo      Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String   @id @default(cuid())
+  nome         String
+  descricao    String?
+  rendimento   Decimal  @db.Decimal(10, 3) // unidades produzidas por lote
+  estoqueAtual Decimal  @default(0) @db.Decimal(10, 3) // unidades prontas em estoque
+  ativo        Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   insumos ReceitaInsumo[]
   ordens  OrdemProducao[]
+  vendas  Venda[]
 
   @@map("receitas")
 }
@@ -226,4 +229,29 @@ model RegistroCondicoes {
   etapa   EtapaFermentacao @relation(fields: [etapaId], references: [id], onDelete: Cascade)
 
   @@map("registros_condicoes")
+}
+
+// ─── Vendas ───────────────────────────────────────────────────────────────────
+
+model Venda {
+  id             String    @id @default(cuid())
+  cliente        String
+  quantidade     Decimal   @db.Decimal(10, 3)
+  precoUnitario  Decimal   @db.Decimal(10, 2)
+  valorTotal     Decimal   @db.Decimal(10, 2)
+  formaPagamento String?
+  pago           Boolean   @default(false)
+  entregue       Boolean   @default(false)
+  dataVenda      DateTime  @default(now())
+  dataEntrega    DateTime?
+  observacoes    String?
+  createdAt      DateTime  @default(now())
+
+  receitaId String
+  receita   Receita @relation(fields: [receitaId], references: [id])
+
+  usuarioId String
+  usuario   User   @relation(fields: [usuarioId], references: [id])
+
+  @@map("vendas")
 }

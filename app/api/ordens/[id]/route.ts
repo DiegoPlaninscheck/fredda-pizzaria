@@ -38,10 +38,23 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return NextResponse.json({ error: 'Status inválido' }, { status: 400 })
   }
 
-  const ordem = await prisma.ordemProducao.update({
-    where: { id: params.id },
-    data: { status },
-  })
+  const atual = await prisma.ordemProducao.findUnique({ where: { id: params.id } })
+  if (!atual) return NextResponse.json({ error: 'Não encontrada' }, { status: 404 })
+
+  const deveIncrementarEstoque = status === 'CONCLUIDA' && atual.status !== 'CONCLUIDA'
+
+  const [ordem] = await prisma.$transaction([
+    prisma.ordemProducao.update({
+      where: { id: params.id },
+      data: { status },
+    }),
+    ...(deveIncrementarEstoque
+      ? [prisma.receita.update({
+          where: { id: atual.receitaId },
+          data: { estoqueAtual: { increment: atual.quantidade } },
+        })]
+      : []),
+  ])
 
   return NextResponse.json(ordem)
 }

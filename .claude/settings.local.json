@@ -10,7 +10,16 @@
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(Sort-Object)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(docker --version)",
+      "Bash(docker compose *)",
+      "PowerShell(Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux, VirtualMachinePlatform, Microsoft-Hyper-V-All)",
+      "PowerShell(Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux)",
+      "PowerShell(Get-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform)",
+      "PowerShell(Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All)",
+      "PowerShell(wsl --status 2>&1)",
+      "PowerShell(wsl --version 2>&1)",
+      "PowerShell(Get-Service com.docker.service -ErrorAction SilentlyContinue)"
     ]
   }
 }

@@ -14,6 +14,7 @@ interface Receita {
   nome: string
   descricao: string | null
   rendimento: string
+  estoqueAtual: string
   ativo: boolean
   insumos: ReceitaInsumo[]
   _count: { ordens: number }
@@ -80,6 +81,12 @@ export default function ReceitasPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-6">
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500">Estoque pronto</p>
+                    <p className={`text-sm font-semibold ${Number(r.estoqueAtual) === 0 ? 'text-gray-400' : 'text-gray-900'}`}>
+                      {Number(r.estoqueAtual).toLocaleString('pt-BR', { maximumFractionDigits: 3 })} un.
+                    </p>
+                  </div>
                   <div className="text-right">
                     <p className="text-xs text-gray-500">Rendimento</p>
                     <p className="text-sm font-semibold text-gray-900">{Number(r.rendimento)} un.</p>

@@ -6,21 +6,74 @@ import Link from 'next/link'
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions)
 
-  const [totalInsumos, fornecedoresAtivos, insumos] = await Promise.all([
+  const inicioMes = new Date()
+  inicioMes.setDate(1)
+  inicioMes.setHours(0, 0, 0, 0)
+
+  const [totalInsumos, fornecedoresAtivos, insumos, vendasDoMes, maisVendido] = await Promise.all([
     prisma.insumo.count({ where: { ativo: true } }),
     prisma.fornecedor.count({ where: { ativo: true } }),
     prisma.insumo.findMany({
       where: { ativo: true },
       select: { estoqueAtual: true, estoqueMinimo: true, nome: true, unidade: true, id: true },
     }),
+    prisma.venda.aggregate({
+      where: { dataVenda: { gte: inicioMes } },
+      _sum: { valorTotal: true, quantidade: true },
+    }),
+    prisma.venda.groupBy({
+      by: ['receitaId'],
+      where: { dataVenda: { gte: inicioMes } },
+      _sum: { quantidade: true },
+      orderBy: { _sum: { quantidade: 'desc' } },
+      take: 1,
+    }),
   ])
 
   const alertas = insumos.filter((i) => i.estoqueAtual < i.estoqueMinimo)
+
+  const faturamentoMes = Number(vendasDoMes._sum.valorTotal ?? 0)
+  const quantidadeVendidaMes = Number(vendasDoMes._sum.quantidade ?? 0)
+
+  const produtoMaisVendido = maisVendido[0]
+    ? await prisma.receita.findUnique({
+        where: { id: maisVendido[0].receitaId },
+        select: { nome: true },
+      })
+    : null
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-2">Dashboard</h1>
       <p className="text-gray-500 mb-8">Bem-vindo, {session?.user?.name}.</p>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <Link href="/vendas" className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:border-orange-200 hover:shadow-md transition-all">
+          <p className="text-sm text-gray-500">Faturamento do mês</p>
+          <p className="text-3xl font-bold text-gray-900 mt-1">
+            R$ {faturamentoMes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          </p>
+          <p className="text-xs text-orange-600 mt-2">Ver vendas →</p>
+        </Link>
+
+        <Link href="/vendas" className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:border-orange-200 hover:shadow-md transition-all">
+          <p className="text-sm text-gray-500">Unidades vendidas no mês</p>
+          <p className="text-3xl font-bold text-gray-900 mt-1">
+            {quantidadeVendidaMes.toLocaleString('pt-BR', { maximumFractionDigits: 3 })}
+          </p>
+          <p className="text-xs text-orange-600 mt-2">Ver vendas →</p>
+        </Link>
+
+        <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+          <p className="text-sm text-gray-500">Mais vendido no mês</p>
+          <p className="text-xl font-bold text-gray-900 mt-1 truncate">
+            {produtoMaisVendido?.nome ?? '—'}
+          </p>
+          <p className="text-xs text-gray-400 mt-2">
+            {produtoMaisVendido ? 'Produto líder de vendas' : 'Nenhuma venda registrada'}
+          </p>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <Link href="/estoque" className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:border-orange-200 hover:shadow-md transition-all">

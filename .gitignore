@@ -38,3 +38,7 @@ next-env.d.ts
 
 # prisma
 /prisma/migrations/*.sql.bak
+
+# dados reais sensíveis (não versionar - contém dados de clientes)
+*.xlsx
+*.xls

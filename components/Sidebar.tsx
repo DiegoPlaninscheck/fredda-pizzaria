@@ -17,6 +17,7 @@ export default function Sidebar() {
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard' },
+    { href: '/vendas', label: 'Vendas' },
     { href: '/producao', label: 'Produção' },
     { href: '/receitas', label: 'Receitas' },
     { href: '/estoque', label: 'Estoque', badge: alertas > 0 ? alertas : undefined },
