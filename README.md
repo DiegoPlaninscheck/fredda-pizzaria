@@ -45,7 +45,7 @@ O **Fredda Pizzaria** é um sistema dedicado que resolve esses pontos com:
 | Autenticação | [NextAuth.js](https://next-auth.js.org/) v4 (Credentials + JWT) |
 | Containerização | Docker + Docker Compose |
 | IA / Previsão | Python (FastAPI + scikit-learn) |
-| Hospedagem | VPS (DigitalOcean / Contabo) |
+| Hospedagem | VPS (Hostinger) |
 | CI/CD | GitHub Actions |
 
 ---
@@ -105,8 +105,25 @@ Acesse em [http://localhost:3000](http://localhost:3000)
 ## 🐳 Rodar com Docker (ambiente completo)
 
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
+
+O `docker-entrypoint.sh` aplica as migrations (`prisma migrate deploy`) automaticamente antes de iniciar o servidor — não precisa rodar nada manualmente após o `up`. Para popular o banco com os dados de exemplo:
+
+```bash
+docker compose exec app npm run db:seed
+```
+
+### Deploy em produção (VPS)
+
+O projeto está preparado para rodar em qualquer VPS com Docker (testado na Hostinger):
+
+1. Clone o repositório no servidor e configure o `.env` com senhas fortes e `NEXTAUTH_URL` apontando para o IP/domínio público
+2. `docker compose up --build -d` — builda a imagem, sobe o MySQL e aplica as migrations sozinho
+3. Libere a porta 3000 no firewall (`ufw allow 3000/tcp`)
+4. A aplicação sobrevive a reboot do servidor (`restart: unless-stopped` no `docker-compose.yml`) — não precisa iniciar nada manualmente depois do primeiro deploy
+
+> A imagem gera o Prisma Client com `binaryTargets = ["native", "linux-musl-openssl-3.0.x"]` no `schema.prisma`, necessário para rodar corretamente em containers Alpine.
 
 ---
 
@@ -157,7 +174,9 @@ fredda-pizzaria/
 │   └── next-auth.d.ts              # Extensão de tipos (id, role na sessão)
 ├── middleware.ts                   # Proteção de rotas autenticadas
 ├── docker-compose.yml
-├── Dockerfile
+├── Dockerfile                      # Build multi-stage + Prisma Client para Alpine (musl)
+├── docker-entrypoint.sh            # Aplica migrations automaticamente antes de iniciar o server
+├── .dockerignore
 └── .env.example
 ```
 
