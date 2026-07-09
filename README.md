@@ -1,9 +1,27 @@
 # 🍕 Fredda Pizzaria — Sistema de Gestão
 
+<img src="public/fredda_pizzaria.png" alt="Fredda Pizzaria" width="96" />
+
 Sistema web de gestão operacional desenvolvido para pizzarias especializadas em massas de longa fermentação. Integra controle de estoque de insumos, acompanhamento do processo produtivo com rastreamento de fermentação e previsão de demanda baseada em inteligência artificial.
 
 > Projeto de portfólio — Engenharia de Software, Católica SC, 2026  
 > Autor: Diego Planinscheck
+
+---
+
+## 🎨 Identidade visual
+
+O sistema usa uma paleta verde/teal (`brand-*`, definida em `tailwind.config.ts`), remetendo à fermentação em geladeira que dá nome ao projeto ("fredda" = fria, em italiano):
+
+| Tom | Hex | Uso típico |
+|-----|-----|------------|
+| `brand-50`  | `#f0f7f3` | Fundos suaves, hover de itens de menu |
+| `brand-500` | `#3d8563` | Realces, ícones ativos |
+| `brand-600` | `#2b6b4d` | Botões primários, links de ação |
+| `brand-700` | `#1f5439` | Hover de botões primários |
+| `brand-900` | `#0f231a` | Texto sobre fundos claros da marca |
+
+O logo (uma fatia de pizza numa cadeira de praia dentro de um cubo de gelo) aparece na página de login, no cabeçalho da sidebar e como favicon (`app/layout.tsx`).
 
 ---
 
@@ -32,6 +50,16 @@ O **Fredda Pizzaria** é um sistema dedicado que resolve esses pontos com:
 | **Processo produtivo** | Ordens de produção, timers de fermentação, condições ambientais | ✅ Concluído |
 | **Vendas e estoque de produto pronto** | Registro de vendas, baixa/reposição automática de estoque de pizzas, KPIs de faturamento | ✅ Concluído |
 | **Previsão de demanda** | Modelo preditivo, sugestão de produção | 📅 Planejado |
+
+---
+
+## 📱 Responsividade
+
+A área autenticada foi adaptada para uso em celular:
+
+- **Navegação:** em telas `< md`, a sidebar vira um menu retrátil (drawer) acionado por um botão hambúrguer no topo, com overlay escurecido e fechamento automático ao trocar de rota. Em telas `md+` continua fixa, como no desktop.
+- **Tabelas** (vendas, estoque, fornecedores, categorias, movimentações) ganharam scroll horizontal próprio (`overflow-x-auto`) em vez de espremer colunas ou quebrar o layout da página.
+- **Cabeçalhos de página e cards** (ex.: lista de receitas, formulário de nova receita) usam `flex-wrap`/empilhamento em coluna no mobile, para título, ações e campos de formulário não serem cortados na tela.
 
 ---
 
@@ -249,6 +277,7 @@ Venda                — id, cliente, quantidade (Decimal), precoUnitario, valor
 - [x] Dashboard com KPIs de vendas (faturamento do mês, unidades vendidas, sabor mais vendido)
 - [x] Exportação de histórico de vendas em CSV com filtros por receita e período
 - [x] Importação de dados reais de vendas/receitas/insumos a partir de planilha histórica
+- [x] Rebrand visual (paleta verde/teal + logo) e interface responsiva para uso em celular
 
 ### Sprint 5 — IA e entrega (semanas 9–10)
 - [ ] Microservice Python com modelo preditivo

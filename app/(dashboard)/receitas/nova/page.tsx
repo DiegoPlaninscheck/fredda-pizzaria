@@ -140,38 +140,40 @@ export default function NovaReceitaPage() {
 
           <div className="space-y-3">
             {itens.map((item, idx) => (
-              <div key={idx} className="flex gap-3 items-center">
+              <div key={idx} className="flex flex-col sm:flex-row gap-3 sm:items-center">
                 <select
                   value={item.insumoId}
                   onChange={(e) => atualizarItem(idx, 'insumoId', e.target.value)}
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full sm:flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 >
                   <option value="">Selecione o insumo</option>
                   {insumos.map((ins) => (
                     <option key={ins.id} value={ins.id}>{ins.nome} ({ins.unidade})</option>
                   ))}
                 </select>
-                <input
-                  type="number"
-                  min="0.001"
-                  step="0.001"
-                  value={item.quantidade}
-                  onChange={(e) => atualizarItem(idx, 'quantidade', e.target.value)}
-                  placeholder="Qtd"
-                  className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-                <span className="text-xs text-gray-500 w-10">
-                  {insumos.find((i) => i.id === item.insumoId)?.unidade || ''}
-                </span>
-                {itens.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removerItem(idx)}
-                    className="text-red-400 hover:text-red-600 text-sm font-bold"
-                  >
-                    ✕
-                  </button>
-                )}
+                <div className="flex gap-3 items-center">
+                  <input
+                    type="number"
+                    min="0.001"
+                    step="0.001"
+                    value={item.quantidade}
+                    onChange={(e) => atualizarItem(idx, 'quantidade', e.target.value)}
+                    placeholder="Qtd"
+                    className="flex-1 sm:w-28 sm:flex-none min-w-0 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                  <span className="text-xs text-gray-500 w-10 shrink-0">
+                    {insumos.find((i) => i.id === item.insumoId)?.unidade || ''}
+                  </span>
+                  {itens.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removerItem(idx)}
+                      className="text-red-400 hover:text-red-600 text-sm font-bold shrink-0"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

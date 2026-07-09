@@ -210,6 +210,7 @@ export default function DetalheInsumoPage() {
         </div>
       ) : (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -246,6 +247,7 @@ export default function DetalheInsumoPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

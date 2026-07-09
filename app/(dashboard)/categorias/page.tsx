@@ -101,7 +101,7 @@ export default function CategoriasPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Categorias</h1>
           <p className="text-sm text-gray-500 mt-1">Organize os insumos por categoria</p>
@@ -185,6 +185,7 @@ export default function CategoriasPage() {
         </div>
       ) : (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -235,6 +236,7 @@ export default function CategoriasPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

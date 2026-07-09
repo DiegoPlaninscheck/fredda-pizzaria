@@ -46,7 +46,7 @@ export default function ReceitasPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Receitas</h1>
           <p className="text-sm text-gray-500 mt-1">Fichas técnicas das pizzas</p>
@@ -71,7 +71,7 @@ export default function ReceitasPage() {
           {receitas.map((r) => (
             <div key={r.id} className="bg-white border border-gray-200 rounded-xl shadow-sm">
               <div
-                className="flex items-center justify-between px-5 py-4 cursor-pointer"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 cursor-pointer"
                 onClick={() => setExpandida(expandida === r.id ? null : r.id)}
               >
                 <div className="flex items-center gap-4">
@@ -80,7 +80,7 @@ export default function ReceitasPage() {
                     {r.descricao && <p className="text-sm text-gray-500 mt-0.5">{r.descricao}</p>}
                   </div>
                 </div>
-                <div className="flex items-center gap-6">
+                <div className="flex flex-wrap items-center gap-4 sm:gap-6">
                   <div className="text-right">
                     <p className="text-xs text-gray-500">Estoque pronto</p>
                     <p className={`text-sm font-semibold ${Number(r.estoqueAtual) === 0 ? 'text-gray-400' : 'text-gray-900'}`}>
