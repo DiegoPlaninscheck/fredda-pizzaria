@@ -96,7 +96,7 @@ export default function NovaOrdemPage() {
               required
               value={receitaId}
               onChange={(e) => { setReceitaId(e.target.value); setInsuficientes([]) }}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               <option value="">Selecione a receita</option>
               {receitas.map((r) => (
@@ -115,7 +115,7 @@ export default function NovaOrdemPage() {
               value={quantidade}
               onChange={(e) => { setQuantidade(e.target.value); setInsuficientes([]) }}
               placeholder="Ex: 20"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
 
@@ -125,7 +125,7 @@ export default function NovaOrdemPage() {
               type="date"
               value={dataPrevista}
               onChange={(e) => setDataPrevista(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
 
@@ -136,7 +136,7 @@ export default function NovaOrdemPage() {
               onChange={(e) => setObservacoes(e.target.value)}
               placeholder="Observações opcionais"
               rows={2}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
             />
           </div>
         </div>
@@ -196,7 +196,7 @@ export default function NovaOrdemPage() {
           <button
             type="submit"
             disabled={salvando}
-            className="bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
+            className="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
           >
             {salvando ? 'Criando...' : 'Criar Ordem'}
           </button>

@@ -74,7 +74,7 @@ export default function NovoInsumoPage() {
               type="text"
               value={form.nome}
               onChange={(e) => set('nome', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               placeholder="Ex: Farinha de Trigo Tipo 1"
             />
           </div>
@@ -85,7 +85,7 @@ export default function NovoInsumoPage() {
               <select
                 value={form.unidade}
                 onChange={(e) => set('unidade', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 {UNIDADES.map((u) => <option key={u} value={u}>{u}</option>)}
               </select>
@@ -98,7 +98,7 @@ export default function NovoInsumoPage() {
                 step="0.001"
                 value={form.estoqueMinimo}
                 onChange={(e) => set('estoqueMinimo', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 placeholder="0"
               />
             </div>
@@ -110,7 +110,7 @@ export default function NovoInsumoPage() {
               <select
                 value={form.categoriaId}
                 onChange={(e) => set('categoriaId', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="">Selecione...</option>
                 {categorias.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
@@ -121,7 +121,7 @@ export default function NovoInsumoPage() {
               <select
                 value={form.fornecedorId}
                 onChange={(e) => set('fornecedorId', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="">Nenhum</option>
                 {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
@@ -137,7 +137,7 @@ export default function NovoInsumoPage() {
               step="0.01"
               value={form.precoUnitario}
               onChange={(e) => set('precoUnitario', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               placeholder="0,00"
             />
           </div>
@@ -148,7 +148,7 @@ export default function NovoInsumoPage() {
             <button
               type="submit"
               disabled={salvando}
-              className="bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors"
+              className="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors"
             >
               {salvando ? 'Salvando...' : 'Salvar Insumo'}
             </button>

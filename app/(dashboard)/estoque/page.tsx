@@ -68,7 +68,7 @@ export default function EstoquePage() {
         </div>
         <Link
           href="/estoque/novo"
-          className="bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           + Novo Insumo
         </Link>
@@ -78,7 +78,7 @@ export default function EstoquePage() {
         <select
           value={categoriaId}
           onChange={(e) => setCategoriaId(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         >
           <option value="">Todas as categorias</option>
           {categorias.map((c) => (
@@ -161,7 +161,7 @@ export default function EstoquePage() {
                   <td className="px-6 py-4 text-right space-x-3">
                     <Link
                       href={`/estoque/${insumo.id}`}
-                      className="text-sm text-orange-600 hover:text-orange-800 font-medium"
+                      className="text-sm text-brand-600 hover:text-brand-800 font-medium"
                     >
                       Detalhes
                     </Link>

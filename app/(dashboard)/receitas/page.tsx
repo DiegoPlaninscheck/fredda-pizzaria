@@ -53,7 +53,7 @@ export default function ReceitasPage() {
         </div>
         <Link
           href="/receitas/nova"
-          className="bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           + Nova Receita
         </Link>
@@ -103,7 +103,7 @@ export default function ReceitasPage() {
                     <Link
                       href={`/receitas/nova?editar=${r.id}`}
                       onClick={(e) => e.stopPropagation()}
-                      className="text-sm text-orange-600 hover:text-orange-800 font-medium"
+                      className="text-sm text-brand-600 hover:text-brand-800 font-medium"
                     >
                       Editar
                     </Link>

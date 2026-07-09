@@ -51,7 +51,7 @@ export default function FornecedoresPage() {
         </div>
         <Link
           href="/fornecedores/novo"
-          className="bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           + Novo Fornecedor
         </Link>
@@ -63,7 +63,7 @@ export default function FornecedoresPage() {
           placeholder="Buscar por nome..."
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm flex-1 max-w-xs focus:outline-none focus:ring-2 focus:ring-orange-500"
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm flex-1 max-w-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
         <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
           <input
@@ -111,7 +111,7 @@ export default function FornecedoresPage() {
                   <td className="px-6 py-4 text-right space-x-3">
                     <Link
                       href={`/fornecedores/${f.id}/editar`}
-                      className="text-sm text-orange-600 hover:text-orange-800 font-medium"
+                      className="text-sm text-brand-600 hover:text-brand-800 font-medium"
                     >
                       Editar
                     </Link>

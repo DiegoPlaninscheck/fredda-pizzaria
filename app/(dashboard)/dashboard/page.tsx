@@ -48,20 +48,20 @@ export default async function DashboardPage() {
       <p className="text-gray-500 mb-8">Bem-vindo, {session?.user?.name}.</p>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <Link href="/vendas" className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:border-orange-200 hover:shadow-md transition-all">
+        <Link href="/vendas" className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:border-brand-200 hover:shadow-md transition-all">
           <p className="text-sm text-gray-500">Faturamento do mês</p>
           <p className="text-3xl font-bold text-gray-900 mt-1">
             R$ {faturamentoMes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-xs text-orange-600 mt-2">Ver vendas →</p>
+          <p className="text-xs text-brand-600 mt-2">Ver vendas →</p>
         </Link>
 
-        <Link href="/vendas" className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:border-orange-200 hover:shadow-md transition-all">
+        <Link href="/vendas" className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:border-brand-200 hover:shadow-md transition-all">
           <p className="text-sm text-gray-500">Unidades vendidas no mês</p>
           <p className="text-3xl font-bold text-gray-900 mt-1">
             {quantidadeVendidaMes.toLocaleString('pt-BR', { maximumFractionDigits: 3 })}
           </p>
-          <p className="text-xs text-orange-600 mt-2">Ver vendas →</p>
+          <p className="text-xs text-brand-600 mt-2">Ver vendas →</p>
         </Link>
 
         <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
@@ -76,10 +76,10 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <Link href="/estoque" className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:border-orange-200 hover:shadow-md transition-all">
+        <Link href="/estoque" className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:border-brand-200 hover:shadow-md transition-all">
           <p className="text-sm text-gray-500">Insumos em estoque</p>
           <p className="text-3xl font-bold text-gray-900 mt-1">{totalInsumos}</p>
-          <p className="text-xs text-orange-600 mt-2">Ver estoque →</p>
+          <p className="text-xs text-brand-600 mt-2">Ver estoque →</p>
         </Link>
 
         <Link href="/estoque?alerta=true" className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:border-red-200 hover:shadow-md transition-all">
@@ -95,10 +95,10 @@ export default async function DashboardPage() {
           )}
         </Link>
 
-        <Link href="/fornecedores" className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:border-orange-200 hover:shadow-md transition-all">
+        <Link href="/fornecedores" className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:border-brand-200 hover:shadow-md transition-all">
           <p className="text-sm text-gray-500">Fornecedores ativos</p>
           <p className="text-3xl font-bold text-gray-900 mt-1">{fornecedoresAtivos}</p>
-          <p className="text-xs text-orange-600 mt-2">Ver fornecedores →</p>
+          <p className="text-xs text-brand-600 mt-2">Ver fornecedores →</p>
         </Link>
       </div>
 

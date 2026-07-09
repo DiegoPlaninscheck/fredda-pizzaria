@@ -8,6 +8,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Fredda Pizzaria',
   description: 'Sistema de gestão para pizzaria de longa fermentação',
+  icons: {
+    icon: '/fredda_pizzaria.png',
+  },
 }
 
 export default function RootLayout({

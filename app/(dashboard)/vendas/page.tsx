@@ -89,7 +89,7 @@ export default function VendasPage() {
         </div>
         <Link
           href="/vendas/nova"
-          className="bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           + Registrar Venda
         </Link>
@@ -123,7 +123,7 @@ export default function VendasPage() {
             <select
               value={filtroReceita}
               onChange={(e) => setFiltroReceita(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               <option value="">Todas</option>
               {receitas.map((r) => (
@@ -137,7 +137,7 @@ export default function VendasPage() {
               type="date"
               value={filtroInicio}
               onChange={(e) => setFiltroInicio(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
           <div>
@@ -146,7 +146,7 @@ export default function VendasPage() {
               type="date"
               value={filtroFim}
               onChange={(e) => setFiltroFim(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
           {(filtroReceita || filtroInicio || filtroFim) && (
@@ -161,7 +161,7 @@ export default function VendasPage() {
             <button
               onClick={exportarCSV}
               disabled={vendas.length === 0}
-              className="text-sm text-orange-600 hover:text-orange-800 font-medium border border-orange-300 px-3 py-1.5 rounded-lg disabled:opacity-40"
+              className="text-sm text-brand-600 hover:text-brand-800 font-medium border border-brand-300 px-3 py-1.5 rounded-lg disabled:opacity-40"
             >
               Exportar CSV
             </button>

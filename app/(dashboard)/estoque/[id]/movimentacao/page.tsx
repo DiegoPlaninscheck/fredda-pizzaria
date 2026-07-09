@@ -77,7 +77,7 @@ export default function MovimentacaoPage() {
                     value={tipo}
                     checked={form.tipo === tipo}
                     onChange={() => set('tipo', tipo)}
-                    className="accent-orange-600"
+                    className="accent-brand-600"
                   />
                   <span className={`text-sm font-medium ${tipo === 'ENTRADA' ? 'text-green-700' : 'text-red-700'}`}>
                     {tipo === 'ENTRADA' ? '+ Entrada' : '− Saída'}
@@ -95,7 +95,7 @@ export default function MovimentacaoPage() {
               step="0.001"
               value={form.quantidade}
               onChange={(e) => set('quantidade', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               placeholder="0,000"
             />
           </div>
@@ -112,7 +112,7 @@ export default function MovimentacaoPage() {
                     type="text"
                     value={form.lote}
                     onChange={(e) => set('lote', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     placeholder="Ex: LOTE-20260513-A1B2"
                   />
                 </div>
@@ -122,7 +122,7 @@ export default function MovimentacaoPage() {
                     type="date"
                     value={form.dataVencimento}
                     onChange={(e) => set('dataVencimento', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
               </div>
@@ -133,7 +133,7 @@ export default function MovimentacaoPage() {
                   <select
                     value={form.fornecedorId}
                     onChange={(e) => set('fornecedorId', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     <option value="">Nenhum</option>
                     {fornecedores.map((f) => (
@@ -149,7 +149,7 @@ export default function MovimentacaoPage() {
                     step="0.01"
                     value={form.precoUnitario}
                     onChange={(e) => set('precoUnitario', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                     placeholder="0,00"
                   />
                 </div>
@@ -165,7 +165,7 @@ export default function MovimentacaoPage() {
               type="text"
               value={form.motivo}
               onChange={(e) => set('motivo', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               placeholder={form.tipo === 'SAIDA' ? 'Ex: Uso na produção do dia 13/05' : 'Observação opcional'}
             />
           </div>
@@ -176,7 +176,7 @@ export default function MovimentacaoPage() {
             <button
               type="submit"
               disabled={salvando}
-              className="bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors"
+              className="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors"
             >
               {salvando ? 'Salvando...' : `Registrar ${form.tipo === 'ENTRADA' ? 'Entrada' : 'Saída'}`}
             </button>

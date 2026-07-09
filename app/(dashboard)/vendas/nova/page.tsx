@@ -88,7 +88,7 @@ export default function NovaVendaPage() {
               value={cliente}
               onChange={(e) => setCliente(e.target.value)}
               placeholder="Nome do cliente"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
 
@@ -98,7 +98,7 @@ export default function NovaVendaPage() {
               required
               value={receitaId}
               onChange={(e) => setReceitaId(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               <option value="">Selecione a receita</option>
               {receitas.map((r) => (
@@ -123,7 +123,7 @@ export default function NovaVendaPage() {
                 value={quantidade}
                 onChange={(e) => setQuantidade(e.target.value)}
                 placeholder="Ex: 1"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
             <div>
@@ -136,7 +136,7 @@ export default function NovaVendaPage() {
                 value={precoUnitario}
                 onChange={(e) => setPrecoUnitario(e.target.value)}
                 placeholder="Ex: 45.00"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
           </div>
@@ -146,7 +146,7 @@ export default function NovaVendaPage() {
             <select
               value={formaPagamento}
               onChange={(e) => setFormaPagamento(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               <option value="">Não informado</option>
               {FORMAS_PAGAMENTO.map((f) => (
@@ -157,11 +157,11 @@ export default function NovaVendaPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" checked={pago} onChange={(e) => setPago(e.target.checked)} className="rounded border-gray-300 text-orange-600 focus:ring-orange-500" />
+              <input type="checkbox" checked={pago} onChange={(e) => setPago(e.target.checked)} className="rounded border-gray-300 text-brand-600 focus:ring-brand-500" />
               Pago
             </label>
             <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" checked={entregue} onChange={(e) => setEntregue(e.target.checked)} className="rounded border-gray-300 text-orange-600 focus:ring-orange-500" />
+              <input type="checkbox" checked={entregue} onChange={(e) => setEntregue(e.target.checked)} className="rounded border-gray-300 text-brand-600 focus:ring-brand-500" />
               Entregue
             </label>
           </div>
@@ -173,7 +173,7 @@ export default function NovaVendaPage() {
                 type="datetime-local"
                 value={dataVenda}
                 onChange={(e) => setDataVenda(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
               <p className="text-xs text-gray-400 mt-1">Vazio = agora</p>
             </div>
@@ -183,7 +183,7 @@ export default function NovaVendaPage() {
                 type="date"
                 value={dataEntrega}
                 onChange={(e) => setDataEntrega(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
           </div>
@@ -195,14 +195,14 @@ export default function NovaVendaPage() {
               onChange={(e) => setObservacoes(e.target.value)}
               placeholder="Observações opcionais"
               rows={2}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
             />
           </div>
 
           {valorTotal > 0 && (
-            <div className="bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 flex items-center justify-between">
-              <span className="text-sm font-medium text-orange-700">Valor total</span>
-              <span className="text-lg font-bold text-orange-700">
+            <div className="bg-brand-50 border border-brand-200 rounded-lg px-4 py-3 flex items-center justify-between">
+              <span className="text-sm font-medium text-brand-700">Valor total</span>
+              <span className="text-lg font-bold text-brand-700">
                 R$ {valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </span>
             </div>
@@ -217,7 +217,7 @@ export default function NovaVendaPage() {
           <button
             type="submit"
             disabled={salvando}
-            className="bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
+            className="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
           >
             {salvando ? 'Salvando...' : 'Registrar Venda'}
           </button>

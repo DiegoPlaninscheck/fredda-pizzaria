@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -38,6 +39,14 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <div className="text-center mb-8">
+            <Image
+              src="/fredda_pizzaria.png"
+              alt="Fredda Pizzaria"
+              width={72}
+              height={72}
+              className="mx-auto mb-3 rounded-xl"
+              priority
+            />
             <h1 className="text-2xl font-bold text-gray-900">Fredda Pizzaria</h1>
             <p className="text-sm text-gray-500 mt-1">Sistema de gestão</p>
           </div>

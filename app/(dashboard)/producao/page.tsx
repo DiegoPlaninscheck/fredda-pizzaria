@@ -98,7 +98,7 @@ export default function ProducaoPage() {
         </div>
         <Link
           href="/producao/nova"
-          className="bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           + Nova Ordem
         </Link>
@@ -111,8 +111,8 @@ export default function ProducaoPage() {
             onClick={() => setFiltroStatus(s)}
             className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
               filtroStatus === s
-                ? 'bg-orange-600 text-white border-orange-600'
-                : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300'
+                ? 'bg-brand-600 text-white border-brand-600'
+                : 'bg-white text-gray-600 border-gray-200 hover:border-brand-300'
             }`}
           >
             {s === '' ? 'Todas' : STATUS_LABEL[s]}
@@ -192,7 +192,7 @@ function OrdemCard({
             </div>
             <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-orange-500 rounded-full transition-all"
+                className="h-full bg-brand-500 rounded-full transition-all"
                 style={{ width: `${progresso}%` }}
               />
             </div>
@@ -209,7 +209,7 @@ function OrdemCard({
       <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between bg-gray-50">
         <Link
           href={`/producao/${ordem.id}`}
-          className="text-sm text-orange-600 hover:text-orange-800 font-medium"
+          className="text-sm text-brand-600 hover:text-brand-800 font-medium"
         >
           Ver detalhes →
         </Link>

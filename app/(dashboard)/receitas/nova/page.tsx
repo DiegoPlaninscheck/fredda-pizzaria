@@ -99,7 +99,7 @@ export default function NovaReceitaPage() {
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               placeholder="Ex: Pizza Margherita"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
           <div>
@@ -108,7 +108,7 @@ export default function NovaReceitaPage() {
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
               placeholder="Descrição opcional"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
           <div>
@@ -121,7 +121,7 @@ export default function NovaReceitaPage() {
               value={rendimento}
               onChange={(e) => setRendimento(e.target.value)}
               placeholder="Ex: 8"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
         </div>
@@ -132,7 +132,7 @@ export default function NovaReceitaPage() {
             <button
               type="button"
               onClick={adicionarItem}
-              className="text-sm text-orange-600 hover:text-orange-800 font-medium"
+              className="text-sm text-brand-600 hover:text-brand-800 font-medium"
             >
               + Adicionar
             </button>
@@ -144,7 +144,7 @@ export default function NovaReceitaPage() {
                 <select
                   value={item.insumoId}
                   onChange={(e) => atualizarItem(idx, 'insumoId', e.target.value)}
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 >
                   <option value="">Selecione o insumo</option>
                   {insumos.map((ins) => (
@@ -158,7 +158,7 @@ export default function NovaReceitaPage() {
                   value={item.quantidade}
                   onChange={(e) => atualizarItem(idx, 'quantidade', e.target.value)}
                   placeholder="Qtd"
-                  className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
                 <span className="text-xs text-gray-500 w-10">
                   {insumos.find((i) => i.id === item.insumoId)?.unidade || ''}
@@ -183,7 +183,7 @@ export default function NovaReceitaPage() {
           <button
             type="submit"
             disabled={salvando}
-            className="bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
+            className="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
           >
             {salvando ? 'Salvando...' : 'Salvar Receita'}
           </button>

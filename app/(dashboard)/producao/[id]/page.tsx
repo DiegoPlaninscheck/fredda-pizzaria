@@ -159,7 +159,7 @@ function EtapaCard({
             <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${
-                  etapa.status === 'CONCLUIDA' ? 'bg-green-500' : 'bg-orange-500'
+                  etapa.status === 'CONCLUIDA' ? 'bg-green-500' : 'bg-brand-500'
                 }`}
                 style={{ width: `${progresso}%` }}
               />
@@ -218,7 +218,7 @@ function EtapaCard({
                     value={temperatura}
                     onChange={(e) => setTemperatura(e.target.value)}
                     placeholder="Ex: 22.5"
-                    className="mt-0.5 w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+                    className="mt-0.5 w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
                   />
                 </div>
                 <div className="flex-1">
@@ -231,7 +231,7 @@ function EtapaCard({
                     value={umidade}
                     onChange={(e) => setUmidade(e.target.value)}
                     placeholder="Ex: 65"
-                    className="mt-0.5 w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+                    className="mt-0.5 w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
                   />
                 </div>
               </div>
@@ -241,13 +241,13 @@ function EtapaCard({
                   value={obsRegistro}
                   onChange={(e) => setObsRegistro(e.target.value)}
                   placeholder="Anotação opcional"
-                  className="mt-0.5 w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+                  className="mt-0.5 w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
               </div>
               <button
                 onClick={salvarRegistro}
                 disabled={salvandoRegistro || (!temperatura && !umidade && !obsRegistro.trim())}
-                className="text-xs font-medium px-3 py-1.5 rounded bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50 transition-colors"
+                className="text-xs font-medium px-3 py-1.5 rounded bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-50 transition-colors"
               >
                 {salvandoRegistro ? 'Salvando...' : 'Salvar registro'}
               </button>

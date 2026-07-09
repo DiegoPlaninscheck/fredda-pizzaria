@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { useEffect, useState } from 'react'
@@ -27,7 +28,14 @@ export default function Sidebar() {
 
   return (
     <aside className="w-56 bg-white border-r border-gray-100 flex flex-col">
-      <div className="px-5 py-5 border-b border-gray-100">
+      <div className="px-5 py-5 border-b border-gray-100 flex items-center gap-2.5">
+        <Image
+          src="/fredda_pizzaria.png"
+          alt="Fredda Pizzaria"
+          width={32}
+          height={32}
+          className="rounded-lg"
+        />
         <span className="font-bold text-gray-900 text-base">Fredda Pizzaria</span>
       </div>
 
@@ -38,7 +46,7 @@ export default function Sidebar() {
             href={href}
             className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
               pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
-                ? 'bg-orange-50 text-orange-700'
+                ? 'bg-brand-50 text-brand-700'
                 : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
             }`}
           >

@@ -58,7 +58,7 @@ export default function NovoFornecedorPage() {
               type="text"
               value={form.nome}
               onChange={(e) => set('nome', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               placeholder="Nome do fornecedor"
             />
           </div>
@@ -69,7 +69,7 @@ export default function NovoFornecedorPage() {
               type="text"
               value={form.cnpj}
               onChange={(e) => set('cnpj', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               placeholder="00.000.000/0000-00"
               maxLength={18}
             />
@@ -82,7 +82,7 @@ export default function NovoFornecedorPage() {
                 type="text"
                 value={form.telefone}
                 onChange={(e) => set('telefone', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 placeholder="(00) 00000-0000"
               />
             </div>
@@ -92,7 +92,7 @@ export default function NovoFornecedorPage() {
                 type="email"
                 value={form.email}
                 onChange={(e) => set('email', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 placeholder="contato@fornecedor.com"
               />
             </div>
@@ -104,7 +104,7 @@ export default function NovoFornecedorPage() {
               type="text"
               value={form.endereco}
               onChange={(e) => set('endereco', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               placeholder="Rua, número, cidade"
             />
           </div>
@@ -115,7 +115,7 @@ export default function NovoFornecedorPage() {
             <button
               type="submit"
               disabled={salvando}
-              className="bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors"
+              className="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors"
             >
               {salvando ? 'Salvando...' : 'Salvar Fornecedor'}
             </button>

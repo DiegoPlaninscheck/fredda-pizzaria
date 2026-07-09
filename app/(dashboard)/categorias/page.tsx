@@ -112,13 +112,13 @@ export default function CategoriasPage() {
               type="checkbox"
               checked={incluirInativas}
               onChange={(e) => setIncluirInativas(e.target.checked)}
-              className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+              className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
             />
             Mostrar inativas
           </label>
           <button
             onClick={abrirNovo}
-            className="bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
           >
             + Nova Categoria
           </button>
@@ -137,7 +137,7 @@ export default function CategoriasPage() {
                 type="text"
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 placeholder="Ex: Farinhas e Grãos"
                 maxLength={100}
               />
@@ -148,7 +148,7 @@ export default function CategoriasPage() {
                 type="text"
                 value={descricao}
                 onChange={(e) => setDescricao(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 placeholder="Descrição opcional"
                 maxLength={255}
               />
@@ -158,7 +158,7 @@ export default function CategoriasPage() {
               <button
                 type="submit"
                 disabled={salvando}
-                className="bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                className="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
               >
                 {salvando ? 'Salvando...' : 'Salvar'}
               </button>
@@ -211,7 +211,7 @@ export default function CategoriasPage() {
                       <>
                         <button
                           onClick={() => abrirEditar(cat)}
-                          className="text-sm text-orange-600 hover:text-orange-800 font-medium"
+                          className="text-sm text-brand-600 hover:text-brand-800 font-medium"
                         >
                           Editar
                         </button>
