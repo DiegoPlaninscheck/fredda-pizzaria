@@ -254,36 +254,43 @@ Venda                — id, cliente, quantidade (Decimal), precoUnitario, valor
 - [x] CRUD de categorias (com ativar/inativar) e fornecedores
 - [x] Validação de CNPJ (dígitos verificadores) no cadastro de fornecedores
 - [x] CRUD de insumos com unidade de medida e estoque mínimo
-- [x] Registro de entradas com número de lote e data de validade (geração automática de lote)
-- [x] Registro de saídas com validação de saldo suficiente (impede estoque negativo)
-- [x] Histórico de movimentações com filtros por tipo e período, saldo acumulado e exportação CSV
-- [x] Alertas de estoque mínimo no dashboard, na listagem e badge na navegação lateral
-- [x] Dashboard com KPIs reais (total de insumos, alertas, fornecedores ativos)
+- [x] Registro de entradas com número de lote e data de validade
+- [x] Registro de saídas com validação de saldo suficiente
+- [x] Histórico de movimentações com filtros, saldo acumulado e exportação CSV
+- [x] Alertas de estoque mínimo no dashboard e navegação lateral
+- [x] Dashboard com KPIs reais
 
 ### Sprint 3 — Processo produtivo (semanas 5–6)
-- [x] Fichas técnicas de receitas com ingredientes por unidade e rendimento por lote
-- [x] CRUD de receitas com soft delete e vínculo com ordens
-- [x] Ordens de produção com seleção de receita, quantidade e data prevista
-- [x] Validação de estoque ao criar ordem (bloqueia com lista de insumos insuficientes)
-- [x] 5 etapas de fermentação padrão criadas automaticamente por ordem (Mistura, Descanso, Fermentação longa, Modelagem, Congelamento)
-- [x] Timer de fermentação por etapa com Iniciar / Pausar / Concluir (tempo acumulado persistido)
-- [x] Registro de condições ambientais (temperatura, umidade, observações) por etapa
-- [x] Painel de ordens com filtro por status, barra de progresso e atualização automática (15s)
-- [x] Sidebar com navegação para Produção e Receitas
+- [x] Fichas técnicas de receitas com ingredientes e rendimento
+- [x] Ordens de produção com validação de estoque
+- [x] Etapas de fermentação padrão com timers (Iniciar/Pausar/Concluir)
+- [x] Registro de condições ambientais (temperatura, umidade, observações)
+- [x] Painel de ordens com progresso e atualização automática
 
 ### Sprint 4 — Dados e planejamento (semanas 7–8)
-- [x] Registro de vendas (cliente, forma de pagamento, status de pagamento e entrega)
-- [x] Estoque de produto pronto por sabor (venda dá baixa, ordem concluída repõe)
-- [x] Dashboard com KPIs de vendas (faturamento do mês, unidades vendidas, sabor mais vendido)
-- [x] Exportação de histórico de vendas em CSV com filtros por receita e período
-- [x] Importação de dados reais de vendas/receitas/insumos a partir de planilha histórica
-- [x] Rebrand visual (paleta verde/teal + logo) e interface responsiva para uso em celular
+- [x] Registro de vendas e estoque de produto pronto por sabor
+- [x] Dashboard com KPIs de vendas
+- [x] Exportação/importação de dados históricos em CSV
+- [x] Rebrand visual e responsividade mobile
 
-### Sprint 5 — IA e entrega (semanas 9–10)
-- [ ] Microservice Python com modelo preditivo
-- [ ] Sugestão de produção semanal
-- [ ] Testes finais com o parceiro
-- [ ] Documentação final
+### Sprint 5 — Modelagem de IA (semanas 9–10)
+- [ ] Coleta e preparação dos dados históricos de vendas
+- [ ] Análise exploratória e definição da abordagem (baseline vs. Prophet/SARIMA/XGBoost)
+- [ ] Implementação do baseline (fallback) e treinamento do modelo principal
+
+### Sprint 6 — Avaliação e microsserviço (semanas 11–12)
+- [ ] Ajuste de hiperparâmetros e avaliação (MAE/RMSE/MAPE)
+- [ ] Microsserviço FastAPI + scikit-learn com endpoint REST protegido por API key
+
+### Sprint 7 — Integração (semanas 13–14)
+- [ ] Integração do microsserviço com a aplicação principal
+- [ ] Sugestão de produção semanal com intervalo de confiança
+- [ ] Tela de comparação planejado x realizado
+
+### Sprint 8 — Deploy e validação (semanas 15–16)
+- [ ] Pipeline CI/CD (GitHub Actions)
+- [ ] Deploy completo (app + IA) na VPS
+- [ ] Testes finais com o parceiro e documentação final
 
 ---
 
