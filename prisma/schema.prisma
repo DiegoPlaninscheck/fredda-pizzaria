@@ -161,7 +161,7 @@ model Receita {
   updatedAt    DateTime @updatedAt
 
   insumos ReceitaInsumo[]
-  ordens  OrdemProducao[]
+  ordens  OrdemReceita[]
   vendas  Venda[]
 
   @@map("receitas")
@@ -184,21 +184,32 @@ model ReceitaInsumo {
 model OrdemProducao {
   id           String      @id @default(cuid())
   status       StatusOrdem @default(PLANEJADA)
-  quantidade   Decimal     @db.Decimal(10, 3)
   dataPrevista DateTime?
   observacoes  String?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  receitaId String
-  receita   Receita @relation(fields: [receitaId], references: [id])
-
   usuarioId String
   usuario   User   @relation(fields: [usuarioId], references: [id])
 
-  etapas EtapaFermentacao[]
+  receitas OrdemReceita[]
+  etapas   EtapaFermentacao[]
 
   @@map("ordens_producao")
+}
+
+model OrdemReceita {
+  id         String  @id @default(cuid())
+  quantidade Decimal @db.Decimal(10, 3)
+
+  ordemId String
+  ordem   OrdemProducao @relation(fields: [ordemId], references: [id], onDelete: Cascade)
+
+  receitaId String
+  receita   Receita @relation(fields: [receitaId], references: [id])
+
+  @@unique([ordemId, receitaId])
+  @@map("ordem_receitas")
 }
 
 model EtapaFermentacao {

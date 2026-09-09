@@ -16,31 +16,46 @@ interface ReceitaOpcao {
 }
 
 interface InsumoInsuficiente {
+  receita: string
   nome: string
   necessario: string
   disponivel: string
-  unidade: string
 }
 
 export default function NovaOrdemPage() {
   const router = useRouter()
   const [receitas, setReceitas] = useState<ReceitaOpcao[]>([])
-  const [receitaId, setReceitaId] = useState('')
-  const [quantidade, setQuantidade] = useState('')
+  const [quantidades, setQuantidades] = useState<Record<string, string>>({})
   const [dataPrevista, setDataPrevista] = useState('')
   const [observacoes, setObservacoes] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
   const [insuficientes, setInsuficientes] = useState<InsumoInsuficiente[]>([])
+  const [ordemCriadaId, setOrdemCriadaId] = useState('')
 
   useEffect(() => {
     fetch('/api/receitas').then((r) => r.json()).then(setReceitas)
   }, [])
 
-  const receitaSelecionada = receitas.find((r) => r.id === receitaId)
+  const receitasSelecionadas = receitas.filter((r) => r.id in quantidades)
 
-  function necessidadeInsumo(insumo: ReceitaOpcao['insumos'][0]) {
-    const qtd = Number(quantidade) || 0
+  function alternarReceita(receitaId: string, marcada: boolean) {
+    setInsuficientes([])
+    setQuantidades((prev) => {
+      const novo = { ...prev }
+      if (marcada) novo[receitaId] = novo[receitaId] ?? ''
+      else delete novo[receitaId]
+      return novo
+    })
+  }
+
+  function alterarQuantidade(receitaId: string, valor: string) {
+    setInsuficientes([])
+    setQuantidades((prev) => ({ ...prev, [receitaId]: valor }))
+  }
+
+  function necessidadeInsumo(insumo: ReceitaOpcao['insumos'][0], receitaId: string) {
+    const qtd = Number(quantidades[receitaId]) || 0
     return qtd > 0 ? Number(insumo.quantidade) * qtd : 0
   }
 
@@ -49,16 +64,24 @@ export default function NovaOrdemPage() {
     setErro('')
     setInsuficientes([])
 
-    if (!receitaId) { setErro('Selecione uma receita'); return }
-    if (Number(quantidade) <= 0) { setErro('Informe a quantidade'); return }
+    if (receitasSelecionadas.length === 0) { setErro('Selecione ao menos uma receita'); return }
+
+    const payloadReceitas: { receitaId: string; quantidade: number }[] = []
+    for (const r of receitasSelecionadas) {
+      const qtd = Number(quantidades[r.id])
+      if (!qtd || qtd <= 0) {
+        setErro(`Informe a quantidade para "${r.nome}"`)
+        return
+      }
+      payloadReceitas.push({ receitaId: r.id, quantidade: qtd })
+    }
 
     setSalvando(true)
     const res = await fetch('/api/ordens', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        receitaId,
-        quantidade: Number(quantidade),
+        receitas: payloadReceitas,
         dataPrevista: dataPrevista || null,
         observacoes: observacoes.trim() || null,
       }),
@@ -68,11 +91,12 @@ export default function NovaOrdemPage() {
 
     if (res.ok) {
       const ordem = await res.json()
-      router.push(`/producao/${ordem.id}`)
-    } else if (res.status === 422) {
-      const d = await res.json()
-      setInsuficientes(d.insuficientes || [])
-      setErro(d.error || 'Estoque insuficiente')
+      if (ordem.insuficientes?.length > 0) {
+        setInsuficientes(ordem.insuficientes)
+        setOrdemCriadaId(ordem.id)
+      } else {
+        router.push(`/producao/${ordem.id}`)
+      }
     } else {
       const d = await res.json()
       setErro(d.error || 'Erro ao criar ordem')
@@ -88,36 +112,54 @@ export default function NovaOrdemPage() {
 
       <form onSubmit={salvar} className="space-y-6">
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
+          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Receitas</h2>
+
+          <div className="space-y-3">
+            {receitas.map((r) => {
+              const marcada = r.id in quantidades
+              return (
+                <div
+                  key={r.id}
+                  className={`border rounded-lg px-3 py-2.5 transition-colors ${
+                    marcada ? 'border-brand-300 bg-brand-50' : 'border-gray-200'
+                  }`}
+                >
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={marcada}
+                      onChange={(e) => alternarReceita(r.id, e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                    />
+                    <span className="text-sm font-medium text-gray-800">{r.nome}</span>
+                  </label>
+
+                  {marcada && (
+                    <div className="mt-2 ml-6">
+                      <label className="block text-xs text-gray-500 mb-1">Quantidade (unidades a produzir)</label>
+                      <input
+                        required
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={quantidades[r.id]}
+                        onChange={(e) => alterarQuantidade(r.id, e.target.value)}
+                        placeholder="Ex: 20"
+                        className="w-full sm:w-40 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+            {receitas.length === 0 && (
+              <p className="text-sm text-gray-400">Nenhuma receita cadastrada.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
           <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Configuração</h2>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Receita *</label>
-            <select
-              required
-              value={receitaId}
-              onChange={(e) => { setReceitaId(e.target.value); setInsuficientes([]) }}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-            >
-              <option value="">Selecione a receita</option>
-              {receitas.map((r) => (
-                <option key={r.id} value={r.id}>{r.nome}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Quantidade (unidades a produzir) *</label>
-            <input
-              required
-              type="number"
-              min="1"
-              step="1"
-              value={quantidade}
-              onChange={(e) => { setQuantidade(e.target.value); setInsuficientes([]) }}
-              placeholder="Ex: 20"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-            />
-          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Data prevista</label>
@@ -141,54 +183,71 @@ export default function NovaOrdemPage() {
           </div>
         </div>
 
-        {receitaSelecionada && Number(quantidade) > 0 && (
-          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">
+        {receitasSelecionadas.length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
               Insumos necessários
             </h2>
-            <div className="space-y-2">
-              {receitaSelecionada.insumos.map((ri) => {
-                const necessario = necessidadeInsumo(ri)
-                const disponivel = Number(ri.insumo.estoqueAtual)
-                const suficiente = disponivel >= necessario
-                return (
-                  <div
-                    key={ri.id}
-                    className={`flex items-center justify-between rounded-lg px-3 py-2 ${
-                      suficiente ? 'bg-green-50' : 'bg-red-50'
-                    }`}
-                  >
-                    <span className="text-sm text-gray-700">{ri.insumo.nome}</span>
-                    <div className="text-right">
-                      <span className={`text-sm font-medium ${suficiente ? 'text-green-700' : 'text-red-700'}`}>
-                        {necessario.toLocaleString('pt-BR', { maximumFractionDigits: 3 })} {ri.insumo.unidade}
-                      </span>
-                      <span className="text-xs text-gray-500 ml-2">
-                        (est. {disponivel.toLocaleString('pt-BR', { maximumFractionDigits: 3 })})
-                      </span>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+            {receitasSelecionadas.map((r) => (
+              <div key={r.id}>
+                <p className="text-xs font-semibold text-gray-500 mb-2">{r.nome}</p>
+                <div className="space-y-2">
+                  {r.insumos.map((ri) => {
+                    const necessario = necessidadeInsumo(ri, r.id)
+                    const disponivel = Number(ri.insumo.estoqueAtual)
+                    const suficiente = disponivel >= necessario
+                    return (
+                      <div
+                        key={ri.id}
+                        className={`flex items-center justify-between rounded-lg px-3 py-2 ${
+                          suficiente ? 'bg-green-50' : 'bg-red-50'
+                        }`}
+                      >
+                        <span className="text-sm text-gray-700">{ri.insumo.nome}</span>
+                        <div className="text-right">
+                          <span className={`text-sm font-medium ${suficiente ? 'text-green-700' : 'text-red-700'}`}>
+                            {necessario.toLocaleString('pt-BR', { maximumFractionDigits: 3 })} {ri.insumo.unidade}
+                          </span>
+                          <span className="text-xs text-gray-500 ml-2">
+                            (est. {disponivel.toLocaleString('pt-BR', { maximumFractionDigits: 3 })})
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+            <p className="text-xs text-gray-400">
+              Insumos com estoque insuficiente não impedem a criação da ordem — sirvem apenas de aviso.
+            </p>
           </div>
         )}
 
         {insuficientes.length > 0 && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-            <p className="text-sm font-semibold text-red-700 mb-2">Estoque insuficiente:</p>
-            <div className="space-y-1">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+            <p className="text-sm font-semibold text-yellow-700 mb-2">
+              Ordem criada, mas há estoque insuficiente para alguns insumos:
+            </p>
+            <div className="space-y-1 mb-3">
               {insuficientes.map((ins, i) => (
-                <p key={i} className="text-sm text-red-600">
-                  {ins.nome}: necessário {Number(ins.necessario).toLocaleString('pt-BR', { maximumFractionDigits: 3 })} {ins.unidade},
-                  disponível {Number(ins.disponivel).toLocaleString('pt-BR', { maximumFractionDigits: 3 })} {ins.unidade}
+                <p key={i} className="text-sm text-yellow-700">
+                  [{ins.receita}] {ins.nome}: necessário {Number(ins.necessario).toLocaleString('pt-BR', { maximumFractionDigits: 3 })},
+                  disponível {Number(ins.disponivel).toLocaleString('pt-BR', { maximumFractionDigits: 3 })}
                 </p>
               ))}
             </div>
+            <button
+              type="button"
+              onClick={() => router.push(`/producao/${ordemCriadaId}`)}
+              className="text-sm font-medium text-brand-700 hover:text-brand-900 underline"
+            >
+              Ver ordem criada →
+            </button>
           </div>
         )}
 
-        {erro && insuficientes.length === 0 && (
+        {erro && (
           <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{erro}</p>
         )}
 

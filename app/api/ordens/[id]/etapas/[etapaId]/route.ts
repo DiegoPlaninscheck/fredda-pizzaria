@@ -17,7 +17,7 @@ export async function PATCH(req: Request, { params }: Params) {
 
   const etapa = await prisma.etapaFermentacao.findUnique({
     where: { id: params.etapaId },
-    include: { ordem_producao: true },
+    include: { ordem_producao: { include: { receitas: true } } },
   })
 
   if (!etapa || etapa.ordemId !== params.id) {
@@ -100,10 +100,12 @@ export async function PATCH(req: Request, { params }: Params) {
           where: { id: params.id },
           data: { status: 'CONCLUIDA' },
         }),
-        prisma.receita.update({
-          where: { id: etapa.ordem_producao.receitaId },
-          data: { estoqueAtual: { increment: etapa.ordem_producao.quantidade } },
-        }),
+        ...etapa.ordem_producao.receitas.map((r) =>
+          prisma.receita.update({
+            where: { id: r.receitaId },
+            data: { estoqueAtual: { increment: r.quantidade } },
+          })
+        ),
       ])
     } else {
       await prisma.ordemProducao.update({

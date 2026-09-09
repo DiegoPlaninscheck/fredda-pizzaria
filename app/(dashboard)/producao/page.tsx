@@ -6,10 +6,9 @@ import Link from 'next/link'
 interface OrdemResumo {
   id: string
   status: 'PLANEJADA' | 'EM_ANDAMENTO' | 'PAUSADA' | 'CONCLUIDA' | 'CANCELADA'
-  quantidade: string
   dataPrevista: string | null
   createdAt: string
-  receita: { nome: string }
+  receitas: { quantidade: string; receita: { nome: string } }[]
   usuario: { nome: string }
   etapas: { status: string; nome: string; ordem: number }[]
 }
@@ -174,9 +173,11 @@ function OrdemCard({
       <div className="px-5 py-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-gray-900 truncate">{ordem.receita.nome}</p>
+            <p className="font-semibold text-gray-900 truncate">
+              {ordem.receitas.map((r) => r.receita.nome).join(', ')}
+            </p>
             <p className="text-xs text-gray-500 mt-0.5">
-              {Number(ordem.quantidade)} un. · {ordem.usuario.nome}
+              {ordem.receitas.map((r) => `${Number(r.quantidade)} un.`).join(' + ')} · {ordem.usuario.nome}
             </p>
           </div>
           <span className={`text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap ${STATUS_STYLE[ordem.status]}`}>

@@ -23,18 +23,23 @@ interface Etapa {
   registros: RegistroCondicoes[]
 }
 
-interface Ordem {
+interface OrdemReceitaItem {
   id: string
-  status: string
   quantidade: string
-  dataPrevista: string | null
-  observacoes: string | null
-  createdAt: string
   receita: {
     nome: string
     descricao: string | null
     insumos: { id: string; quantidade: string; insumo: { nome: string; unidade: string } }[]
   }
+}
+
+interface Ordem {
+  id: string
+  status: string
+  dataPrevista: string | null
+  observacoes: string | null
+  createdAt: string
+  receitas: OrdemReceitaItem[]
   usuario: { nome: string }
   etapas: Etapa[]
 }
@@ -381,13 +386,15 @@ export default function OrdemDetalhe() {
       <div className="mb-6">
         <button onClick={() => router.push('/producao')} className="text-sm text-gray-500 hover:text-gray-700">← Produção</button>
         <div className="flex items-center gap-3 mt-2 flex-wrap">
-          <h1 className="text-2xl font-bold text-gray-900">{ordem.receita.nome}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {ordem.receitas.map((r) => r.receita.nome).join(', ')}
+          </h1>
           <span className={`text-sm font-medium px-3 py-1 rounded-full ${STATUS_STYLE[ordem.status]}`}>
             {STATUS_LABEL[ordem.status]}
           </span>
         </div>
         <p className="text-sm text-gray-500 mt-1">
-          {Number(ordem.quantidade)} unidades · {ordem.usuario.nome} ·{' '}
+          {ordem.receitas.map((r) => `${r.receita.nome}: ${Number(r.quantidade)} un.`).join(' · ')} · {ordem.usuario.nome} ·{' '}
           {new Date(ordem.createdAt).toLocaleDateString('pt-BR')}
         </p>
         {ordem.dataPrevista && (
@@ -416,20 +423,27 @@ export default function OrdemDetalhe() {
         ))}
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-          Ingredientes da receita (por unidade)
+      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6 space-y-4">
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          Ingredientes das receitas (por unidade)
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {ordem.receita.insumos.map((ri) => (
-            <div key={ri.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-              <span className="text-sm text-gray-700">{ri.insumo.nome}</span>
-              <span className="text-sm font-medium text-gray-900">
-                {Number(ri.quantidade).toLocaleString('pt-BR', { maximumFractionDigits: 3 })} {ri.insumo.unidade}
-              </span>
+        {ordem.receitas.map((r) => (
+          <div key={r.id}>
+            <p className="text-xs font-semibold text-gray-600 mb-2">
+              {r.receita.nome} ({Number(r.quantidade)} un.)
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {r.receita.insumos.map((ri) => (
+                <div key={ri.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                  <span className="text-sm text-gray-700">{ri.insumo.nome}</span>
+                  <span className="text-sm font-medium text-gray-900">
+                    {Number(ri.quantidade).toLocaleString('pt-BR', { maximumFractionDigits: 3 })} {ri.insumo.unidade}
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
 
       {!finalizada && (

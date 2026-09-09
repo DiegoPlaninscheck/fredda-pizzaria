@@ -57,7 +57,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-  const emUso = await prisma.ordemProducao.findFirst({ where: { receitaId: params.id } })
+  const emUso = await prisma.ordemReceita.findFirst({ where: { receitaId: params.id } })
   if (emUso) return NextResponse.json({ error: 'Receita possui ordens vinculadas' }, { status: 409 })
 
   await prisma.receita.update({ where: { id: params.id }, data: { ativo: false } })

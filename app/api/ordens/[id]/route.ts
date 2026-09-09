@@ -10,9 +10,13 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const ordem = await prisma.ordemProducao.findUnique({
     where: { id: params.id },
     include: {
-      receita: {
+      receitas: {
         include: {
-          insumos: { include: { insumo: { select: { id: true, nome: true, unidade: true } } } },
+          receita: {
+            include: {
+              insumos: { include: { insumo: { select: { id: true, nome: true, unidade: true } } } },
+            },
+          },
         },
       },
       usuario: { select: { nome: true } },
@@ -38,7 +42,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return NextResponse.json({ error: 'Status inválido' }, { status: 400 })
   }
 
-  const atual = await prisma.ordemProducao.findUnique({ where: { id: params.id } })
+  const atual = await prisma.ordemProducao.findUnique({
+    where: { id: params.id },
+    include: { receitas: true },
+  })
   if (!atual) return NextResponse.json({ error: 'Não encontrada' }, { status: 404 })
 
   const deveIncrementarEstoque = status === 'CONCLUIDA' && atual.status !== 'CONCLUIDA'
@@ -49,10 +56,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       data: { status },
     }),
     ...(deveIncrementarEstoque
-      ? [prisma.receita.update({
-          where: { id: atual.receitaId },
-          data: { estoqueAtual: { increment: atual.quantidade } },
-        })]
+      ? atual.receitas.map((r) =>
+          prisma.receita.update({
+            where: { id: r.receitaId },
+            data: { estoqueAtual: { increment: r.quantidade } },
+          })
+        )
       : []),
   ])
 
