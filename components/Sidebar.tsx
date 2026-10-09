@@ -9,12 +9,16 @@ import { useEffect, useState } from 'react'
 export default function Sidebar() {
   const pathname = usePathname()
   const [alertas, setAlertas] = useState(0)
+  const [pedidosAguardando, setPedidosAguardando] = useState(0)
   const [menuAberto, setMenuAberto] = useState(false)
 
   useEffect(() => {
     fetch('/api/insumos?alerta=true')
       .then((r) => r.ok ? r.json() : [])
       .then((data) => setAlertas(Array.isArray(data) ? data.length : 0))
+    fetch('/api/pedidos/resumo')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => setPedidosAguardando(data ? data.pendentes + data.conversasAguardando : 0))
   }, [pathname])
 
   useEffect(() => {
@@ -23,6 +27,7 @@ export default function Sidebar() {
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard' },
+    { href: '/pedidos', label: 'Pedidos', badge: pedidosAguardando > 0 ? pedidosAguardando : undefined },
     { href: '/vendas', label: 'Vendas' },
     { href: '/producao', label: 'Produção' },
     { href: '/receitas', label: 'Receitas' },

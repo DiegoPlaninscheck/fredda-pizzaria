@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { exigirSessao } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import { TipoMovimentacao } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library'
+import { baixarEstoqueInsumo, EstoqueInsuficienteError } from '@/lib/estoque'
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  const session = await exigirSessao()
+  if (session instanceof NextResponse) return session
 
   const { searchParams } = new URL(req.url)
   const tipo = searchParams.get('tipo') as TipoMovimentacao | null
@@ -62,8 +62,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 }
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  const session = await exigirSessao()
+  if (session instanceof NextResponse) return session
 
   const body = await req.json()
   const { tipo, quantidade, motivo, lote, dataVencimento, precoUnitario, fornecedorId } = body
@@ -81,50 +81,46 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     return NextResponse.json({ error: 'Quantidade deve ser maior que zero' }, { status: 400 })
   }
 
-  // Valida saldo suficiente antes de saída
-  if (tipo === TipoMovimentacao.SAIDA) {
-    const insumo = await prisma.insumo.findUnique({
-      where: { id: params.id },
-      select: { estoqueAtual: true, nome: true },
-    })
-    if (!insumo) return NextResponse.json({ error: 'Insumo não encontrado' }, { status: 404 })
-
-    if (new Decimal(insumo.estoqueAtual).lt(qtd)) {
-      return NextResponse.json(
-        { error: `Saldo insuficiente. Estoque atual: ${Number(insumo.estoqueAtual).toLocaleString('pt-BR', { maximumFractionDigits: 3 })}` },
-        { status: 422 }
-      )
-    }
-  }
+  const insumo = await prisma.insumo.findUnique({ where: { id: params.id }, select: { id: true } })
+  if (!insumo) return NextResponse.json({ error: 'Insumo não encontrado' }, { status: 404 })
 
   const loteGerado = lote?.trim() || (tipo === TipoMovimentacao.ENTRADA ? gerarLote() : null)
 
-  const [movimentacao] = await prisma.$transaction([
-    prisma.movimentacaoEstoque.create({
-      data: {
-        tipo,
-        quantidade: qtd,
-        motivo: motivo?.trim() || null,
-        lote: loteGerado,
-        dataVencimento: dataVencimento ? new Date(dataVencimento) : null,
-        precoUnitario: precoUnitario ? Number(precoUnitario) : null,
-        insumoId: params.id,
-        fornecedorId: fornecedorId || null,
-        usuarioId: session.user.id,
-      },
-      include: { fornecedor: true, usuario: { select: { nome: true } } },
-    }),
-    prisma.insumo.update({
-      where: { id: params.id },
-      data: {
-        estoqueAtual: {
-          [tipo === TipoMovimentacao.ENTRADA ? 'increment' : 'decrement']: qtd,
-        },
-      },
-    }),
-  ])
+  try {
+    const movimentacao = await prisma.$transaction(async (tx) => {
+      // Saída só acontece se houver saldo (verificado no próprio UPDATE)
+      if (tipo === TipoMovimentacao.SAIDA) {
+        await baixarEstoqueInsumo(tx, params.id, qtd)
+      } else {
+        await tx.insumo.update({
+          where: { id: params.id },
+          data: { estoqueAtual: { increment: qtd } },
+        })
+      }
 
-  return NextResponse.json(movimentacao, { status: 201 })
+      return tx.movimentacaoEstoque.create({
+        data: {
+          tipo,
+          quantidade: qtd,
+          motivo: motivo?.trim() || null,
+          lote: loteGerado,
+          dataVencimento: dataVencimento ? new Date(dataVencimento) : null,
+          precoUnitario: precoUnitario ? Number(precoUnitario) : null,
+          insumoId: params.id,
+          fornecedorId: fornecedorId || null,
+          usuarioId: session.user.id,
+        },
+        include: { fornecedor: true, usuario: { select: { nome: true } } },
+      })
+    })
+
+    return NextResponse.json(movimentacao, { status: 201 })
+  } catch (e) {
+    if (e instanceof EstoqueInsuficienteError) {
+      return NextResponse.json({ error: e.message }, { status: 422 })
+    }
+    throw e
+  }
 }
 
 function gerarLote(): string {

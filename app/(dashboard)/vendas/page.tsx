@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 
 interface Receita {
   id: string
@@ -19,11 +20,14 @@ interface Venda {
   entregue: boolean
   dataVenda: string
   observacoes: string | null
+  pedidoId: number | null
   receita: { id: string; nome: string }
   usuario: { nome: string }
 }
 
 export default function VendasPage() {
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.role === 'ADMIN'
   const [vendas, setVendas] = useState<Venda[]>([])
   const [receitas, setReceitas] = useState<Receita[]>([])
   const [loading, setLoading] = useState(true)
@@ -47,6 +51,31 @@ export default function VendasPage() {
   }, [])
 
   useEffect(() => { carregar() }, [carregar])
+
+  async function alternar(venda: Venda, campo: 'pago' | 'entregue') {
+    const res = await fetch(`/api/vendas/${venda.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [campo]: !venda[campo] }),
+    })
+    if (res.ok) {
+      const atualizada: Venda = await res.json()
+      setVendas((lista) => lista.map((v) => (v.id === atualizada.id ? atualizada : v)))
+    } else {
+      const d = await res.json()
+      alert(d.error || 'Erro ao atualizar venda')
+    }
+  }
+
+  async function cancelar(venda: Venda) {
+    if (!confirm(`Cancelar a venda de ${venda.receita.nome} para ${venda.cliente}? As unidades voltam para o estoque.`)) return
+    const res = await fetch(`/api/vendas/${venda.id}`, { method: 'DELETE' })
+    if (res.ok) carregar()
+    else {
+      const d = await res.json()
+      alert(d.error || 'Erro ao cancelar venda')
+    }
+  }
 
   const totalQuantidade = vendas.reduce((acc, v) => acc + Number(v.quantidade), 0)
   const totalFaturamento = vendas.reduce((acc, v) => acc + Number(v.valorTotal), 0)
@@ -192,13 +221,21 @@ export default function VendasPage() {
                 <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Qtd.</th>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                {isAdmin && <th className="px-4 py-3" />}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {vendas.map((v) => (
                 <tr key={v.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatarData(v.dataVenda)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{v.cliente}</td>
+                  <td className="px-4 py-3 text-sm text-gray-900">
+                    {v.cliente}
+                    {v.pedidoId && (
+                      <Link href={`/pedidos/${v.pedidoId}`} className="ml-2 text-xs text-brand-600 hover:underline">
+                        pedido #{v.pedidoId}
+                      </Link>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-sm text-gray-900 font-medium">{v.receita.nome}</td>
                   <td className="px-4 py-3 text-sm text-right text-gray-900">
                     {Number(v.quantidade).toLocaleString('pt-BR', { maximumFractionDigits: 3 })}
@@ -208,14 +245,33 @@ export default function VendasPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1.5">
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${v.pago ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      <button
+                        type="button"
+                        title={v.pago ? 'Marcar como não pago' : 'Marcar como pago'}
+                        onClick={() => alternar(v, 'pago')}
+                        className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold hover:ring-2 hover:ring-offset-1 hover:ring-gray-200 ${v.pago ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+                      >
                         {v.pago ? 'Pago' : 'Não pago'}
-                      </span>
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${v.entregue ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                      </button>
+                      <button
+                        type="button"
+                        title={v.entregue ? 'Marcar como pendente' : 'Marcar como entregue'}
+                        onClick={() => alternar(v, 'entregue')}
+                        className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold hover:ring-2 hover:ring-offset-1 hover:ring-gray-200 ${v.entregue ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}
+                      >
                         {v.entregue ? 'Entregue' : 'Pendente'}
-                      </span>
+                      </button>
                     </div>
                   </td>
+                  {isAdmin && (
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      {!v.pedidoId && (
+                        <button onClick={() => cancelar(v)} className="text-xs text-red-600 hover:text-red-800">
+                          Cancelar
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

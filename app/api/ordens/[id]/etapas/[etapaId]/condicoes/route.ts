@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { exigirSessao } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 
 type Params = { params: { id: string; etapaId: string } }
 
 export async function GET(_req: Request, { params }: Params) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  const session = await exigirSessao()
+  if (session instanceof NextResponse) return session
 
   const registros = await prisma.registroCondicoes.findMany({
     where: { etapaId: params.etapaId },
@@ -18,8 +17,8 @@ export async function GET(_req: Request, { params }: Params) {
 }
 
 export async function POST(req: Request, { params }: Params) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  const session = await exigirSessao()
+  if (session instanceof NextResponse) return session
 
   const body = await req.json()
   const { temperatura, umidade, observacoes } = body

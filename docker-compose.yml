@@ -28,11 +28,38 @@ services:
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       NODE_ENV: production
+      # Chatbot de pedidos (Claude + WhatsApp Cloud API)
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN:-}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
     ports:
       - "3000:3000"
     depends_on:
       db:
         condition: service_healthy
 
+  # Proxy reverso com HTTPS automático (Let's Encrypt) — exigido pelo webhook do WhatsApp.
+  # Só sobe com: docker compose --profile https up -d  (requer DOMINIO no .env apontando para a VPS)
+  caddy:
+    image: caddy:2-alpine
+    container_name: fredda_caddy
+    restart: unless-stopped
+    profiles: ["https"]
+    environment:
+      DOMINIO: ${DOMINIO:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
 volumes:
   mysql_data:
+  caddy_data:
+  caddy_config:

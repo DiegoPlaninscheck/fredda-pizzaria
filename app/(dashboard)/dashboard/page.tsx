@@ -10,7 +10,7 @@ export default async function DashboardPage() {
   inicioMes.setDate(1)
   inicioMes.setHours(0, 0, 0, 0)
 
-  const [totalInsumos, fornecedoresAtivos, insumos, vendasDoMes, maisVendido] = await Promise.all([
+  const [totalInsumos, fornecedoresAtivos, insumos, vendasDoMes, maisVendido, pedidosPendentes, conversasAguardando] = await Promise.all([
     prisma.insumo.count({ where: { ativo: true } }),
     prisma.fornecedor.count({ where: { ativo: true } }),
     prisma.insumo.findMany({
@@ -28,9 +28,11 @@ export default async function DashboardPage() {
       orderBy: { _sum: { quantidade: 'desc' } },
       take: 1,
     }),
+    prisma.pedido.count({ where: { status: 'PENDENTE' } }),
+    prisma.conversa.count({ where: { status: 'HUMANO' } }),
   ])
 
-  const alertas = insumos.filter((i) => i.estoqueAtual < i.estoqueMinimo)
+  const alertas = insumos.filter((i) => i.estoqueAtual.lt(i.estoqueMinimo))
 
   const faturamentoMes = Number(vendasDoMes._sum.valorTotal ?? 0)
   const quantidadeVendidaMes = Number(vendasDoMes._sum.quantidade ?? 0)
@@ -46,6 +48,20 @@ export default async function DashboardPage() {
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-2">Dashboard</h1>
       <p className="text-gray-500 mb-8">Bem-vindo, {session?.user?.name}.</p>
+
+      {(pedidosPendentes > 0 || conversasAguardando > 0) && (
+        <Link
+          href="/pedidos"
+          className="flex flex-wrap items-center justify-between gap-2 bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4 hover:border-yellow-300"
+        >
+          <span className="text-sm font-semibold text-yellow-900">
+            {pedidosPendentes > 0 && `${pedidosPendentes} pedido(s) do WhatsApp aguardando confirmação`}
+            {pedidosPendentes > 0 && conversasAguardando > 0 && ' · '}
+            {conversasAguardando > 0 && `${conversasAguardando} cliente(s) aguardando atendente`}
+          </span>
+          <span className="text-xs text-yellow-800">Ver pedidos →</span>
+        </Link>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <Link href="/vendas" className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:border-brand-200 hover:shadow-md transition-all">

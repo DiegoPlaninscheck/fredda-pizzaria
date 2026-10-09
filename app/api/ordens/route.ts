@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { exigirSessao } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
-import { NomeEtapa } from '@prisma/client'
+import { NomeEtapa, StatusOrdem } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library'
+import { baixarEstoqueInsumo, EstoqueInsuficienteError } from '@/lib/estoque'
 
 const ETAPAS_PADRAO: { nome: NomeEtapa; ordem: number; duracaoMinutos: number }[] = [
   { nome: NomeEtapa.MISTURA,           ordem: 1, duracaoMinutos: 30   },
@@ -14,17 +14,26 @@ const ETAPAS_PADRAO: { nome: NomeEtapa; ordem: number; duracaoMinutos: number }[
 ]
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  const session = await exigirSessao()
+  if (session instanceof NextResponse) return session
 
   const { searchParams } = new URL(req.url)
   const status = searchParams.get('status')
   const receitaId = searchParams.get('receitaId')
 
+  if (status && !Object.values(StatusOrdem).includes(status as StatusOrdem)) {
+    return NextResponse.json({ error: 'Status inválido' }, { status: 400 })
+  }
+
   const ordens = await prisma.ordemProducao.findMany({
     where: {
+<<<<<<< Updated upstream
       status: status ? (status as never) : { not: 'CANCELADA' },
       receitas: receitaId ? { some: { receitaId } } : undefined,
+=======
+      status: status ? (status as StatusOrdem) : { not: 'CANCELADA' },
+      receitaId: receitaId || undefined,
+>>>>>>> Stashed changes
     },
     orderBy: { createdAt: 'desc' },
     include: {
@@ -38,8 +47,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  const session = await exigirSessao()
+  if (session instanceof NextResponse) return session
 
   const body = await req.json()
   const { receitas, dataPrevista, observacoes } = body
@@ -89,6 +98,7 @@ export async function POST(req: Request) {
     }
   }
 
+<<<<<<< Updated upstream
   const ordem = await prisma.ordemProducao.create({
     data: {
       usuarioId: session.user.id,
@@ -107,4 +117,50 @@ export async function POST(req: Request) {
   })
 
   return NextResponse.json({ ...ordem, insuficientes }, { status: 201 })
+=======
+  try {
+    const ordem = await prisma.$transaction(async (tx) => {
+      const criada = await tx.ordemProducao.create({
+        data: {
+          receitaId,
+          usuarioId: session.user.id,
+          quantidade: qtd,
+          dataPrevista: dataPrevista ? new Date(dataPrevista) : null,
+          observacoes: observacoes?.trim() || null,
+          etapas: { create: ETAPAS_PADRAO },
+        },
+        include: {
+          receita: { select: { id: true, nome: true } },
+          usuario: { select: { nome: true } },
+          etapas: { orderBy: { ordem: 'asc' } },
+        },
+      })
+
+      // Baixa dos insumos consumidos pela ordem (estornada se a ordem for cancelada)
+      for (const ri of receita.insumos) {
+        const necessario = new Decimal(ri.quantidade).mul(qtd)
+        await baixarEstoqueInsumo(tx, ri.insumoId, necessario)
+        await tx.movimentacaoEstoque.create({
+          data: {
+            tipo: 'SAIDA',
+            quantidade: necessario,
+            motivo: `Ordem de produção ${criada.id.slice(-6).toUpperCase()} — ${receita.nome}`,
+            insumoId: ri.insumoId,
+            usuarioId: session.user.id,
+            ordemId: criada.id,
+          },
+        })
+      }
+
+      return criada
+    })
+
+    return NextResponse.json(ordem, { status: 201 })
+  } catch (e) {
+    if (e instanceof EstoqueInsuficienteError) {
+      return NextResponse.json({ error: e.message }, { status: 422 })
+    }
+    throw e
+  }
+>>>>>>> Stashed changes
 }

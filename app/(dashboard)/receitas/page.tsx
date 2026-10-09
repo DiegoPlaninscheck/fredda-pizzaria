@@ -15,6 +15,7 @@ interface Receita {
   descricao: string | null
   rendimento: string
   estoqueAtual: string
+  precoVenda: string | null
   ativo: boolean
   insumos: ReceitaInsumo[]
   _count: { ordens: number }
@@ -85,6 +86,14 @@ export default function ReceitasPage() {
                     <p className="text-xs text-gray-500">Estoque pronto</p>
                     <p className={`text-sm font-semibold ${Number(r.estoqueAtual) === 0 ? 'text-gray-400' : 'text-gray-900'}`}>
                       {Number(r.estoqueAtual).toLocaleString('pt-BR', { maximumFractionDigits: 3 })} un.
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500">Preço</p>
+                    <p className={`text-sm font-semibold ${r.precoVenda ? 'text-gray-900' : 'text-gray-400'}`}>
+                      {r.precoVenda
+                        ? `R$ ${Number(r.precoVenda).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                        : 'sem preço'}
                     </p>
                   </div>
                   <div className="text-right">

@@ -1,0 +1,6 @@
+# Proxy reverso HTTPS para o app (certificado automático via Let's Encrypt).
+# O domínio vem da variável DOMINIO do .env.
+{$DOMINIO} {
+	encode gzip
+	reverse_proxy app:3000
+}

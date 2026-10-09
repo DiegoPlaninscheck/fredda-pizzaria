@@ -36,6 +36,7 @@ O **Fredda Pizzaria** é um sistema dedicado que resolve esses pontos com:
 - Estoque de produto pronto por sabor, atualizado automaticamente por produção e vendas
 - Registro de vendas com controle de pagamento e entrega
 - Dashboard operacional com KPIs em tempo real
+- Pedidos pelo WhatsApp com um chatbot inteligente (Claude) que consulta o cardápio e o estoque reais
 - Previsão de demanda semanal com modelo de IA treinado com dados históricos
 
 ---
@@ -49,7 +50,56 @@ O **Fredda Pizzaria** é um sistema dedicado que resolve esses pontos com:
 | **Receitas** | Fichas técnicas com ingredientes e rendimento | ✅ Concluído |
 | **Processo produtivo** | Ordens de produção, timers de fermentação, condições ambientais | ✅ Concluído |
 | **Vendas e estoque de produto pronto** | Registro de vendas, baixa/reposição automática de estoque de pizzas, KPIs de faturamento | ✅ Concluído |
+| **Pedidos via WhatsApp (chatbot)** | Cliente faz o pedido conversando com um assistente (Claude Sonnet 5.5); equipe confirma no painel | ✅ Concluído |
 | **Previsão de demanda** | Modelo preditivo, sugestão de produção | 📅 Planejado |
+
+---
+
+## 🤖 Pedidos pelo WhatsApp (chatbot)
+
+O cliente conversa com a Fredda pelo WhatsApp e o pedido cai direto no sistema:
+
+```
+Cliente (WhatsApp) → Meta Cloud API → POST /api/whatsapp/webhook
+  → valida a assinatura, ignora reenvios e responde 200 na hora
+  → em segundo plano (fila por cliente): histórico da conversa → Claude + ferramentas → resposta
+Pedido criado = "Aguardando confirmação" (pizzas reservadas no estoque) → aparece em /pedidos
+  → equipe confirma (gera as vendas) → entregue   |   cancelado (estoque devolvido)
+  → cada mudança de status é avisada ao cliente pelo WhatsApp
+```
+
+**O que o assistente faz** (ferramentas em `lib/chatbot/ferramentas.ts`): mostra o cardápio com preço e disponibilidade reais, salva nome e endereço do cliente, monta o pedido e **só registra depois que o cliente confirma o resumo**, consulta e cancela pedidos que ainda não foram confirmados e chama um atendente humano quando necessário (o bot fica pausado até a equipe devolver a conversa).
+
+**Segurança:** o cliente é identificado no servidor pelo telefone do WhatsApp; o modelo nunca escolhe de quem é o pedido, então uma mensagem maliciosa não acessa dados de outro cliente. Os preços são sempre recalculados a partir do cardápio, e o webhook só aceita requisições assinadas pela Meta (`X-Hub-Signature-256`).
+
+**Modelo e custo:** `claude-sonnet-5-5` com effort `low`, prompt caching (prompt de sistema, ferramentas e histórico) e *fallback* automático para outro modelo em caso de recusa. Um pedido completo custa em torno de US$ 0,01–0,03.
+
+**Painel:** `/pedidos` lista os pedidos (atualiza a cada 15s) e os clientes aguardando atendente; o detalhe do pedido mostra a conversa e os botões Confirmar / Entregue / Cancelar; a tela da conversa permite responder o cliente pelo próprio painel. A navegação lateral mostra um contador de pedidos pendentes.
+
+> Só receitas com **preço de venda** preenchido aparecem no cardápio do chatbot.
+
+### Testar sem WhatsApp
+
+```bash
+# precisa de ANTHROPIC_API_KEY no .env
+npm run chat                    # conversa pelo terminal como um cliente fictício
+npm run chat -- 5547988887777   # simula outro cliente
+```
+
+Os pedidos criados no terminal aparecem normalmente em `/pedidos`.
+
+### Configurar o WhatsApp (Meta Cloud API)
+
+1. Em [developers.facebook.com](https://developers.facebook.com), crie um app do tipo **Empresa** e adicione o produto **WhatsApp**. A Meta fornece um número de teste (dá para cadastrar até 5 números de destino para testar).
+2. Copie para o `.env`: o **token de acesso** (`WHATSAPP_TOKEN` — em produção, gere um token permanente de um *usuário do sistema* no Business Manager), a **identificação do número de telefone** (`WHATSAPP_PHONE_NUMBER_ID`) e a **chave secreta do app**, em Configurações → Básico (`WHATSAPP_APP_SECRET`). Invente um texto para `WHATSAPP_VERIFY_TOKEN`.
+3. O webhook exige **HTTPS público**:
+   - **Na VPS:** aponte um domínio para o IP do servidor, preencha `DOMINIO` no `.env`, libere as portas 80/443 e suba com `docker compose --profile https up -d` — o Caddy emite o certificado sozinho. Ajuste `NEXTAUTH_URL` para `https://<seu domínio>`.
+   - **Em desenvolvimento:** `cloudflared tunnel --url http://localhost:3000` (ou ngrok) gera uma URL HTTPS temporária.
+4. Em WhatsApp → Configuração, cadastre a URL `https://<domínio>/api/whatsapp/webhook` com o mesmo `WHATSAPP_VERIFY_TOKEN` e assine o campo **messages**.
+
+**Limitações conhecidas:**
+- Pela regra do WhatsApp, mensagens livres (avisos de status, respostas da equipe) só podem ser enviadas até 24h depois da última mensagem do cliente. Fora dessa janela o aviso não é enviado e o painel informa. Enviar *templates* aprovados pela Meta fica para uma próxima etapa.
+- A fila que ordena as mensagens de cada cliente fica em memória, o que funciona com uma única instância do app (o cenário da VPS).
 
 ---
 
@@ -72,6 +122,7 @@ A área autenticada foi adaptada para uso em celular:
 | Banco de dados | MySQL 8 |
 | Autenticação | [NextAuth.js](https://next-auth.js.org/) v4 (Credentials + JWT) |
 | Containerização | Docker + Docker Compose |
+| Chatbot de pedidos | [Claude API](https://docs.anthropic.com) (`@anthropic-ai/sdk`, Claude Sonnet 5.5) + WhatsApp Cloud API |
 | IA / Previsão | Python (FastAPI + scikit-learn) |
 | Hospedagem | VPS (Hostinger) |
 | CI/CD | GitHub Actions |
@@ -128,6 +179,8 @@ Acesse em [http://localhost:3000](http://localhost:3000)
 
 **Credenciais do seed:** `admin@freddapizzaria.com` / `admin123`
 
+**Perfis:** `OPERADOR` faz a operação do dia a dia (movimentações, ordens, vendas, pedidos). Excluir/inativar fornecedores, categorias, insumos e receitas e cancelar vendas é exclusivo do `ADMIN`.
+
 ---
 
 ## 🐳 Rodar com Docker (ambiente completo)
@@ -141,6 +194,8 @@ O `docker-entrypoint.sh` aplica as migrations (`prisma migrate deploy`) automati
 ```bash
 docker compose exec app npm run db:seed
 ```
+
+Para expor o app com HTTPS (necessário para o webhook do WhatsApp), suba também o Caddy: `docker compose --profile https up -d` (veja [Configurar o WhatsApp](#configurar-o-whatsapp-meta-cloud-api)).
 
 ### Deploy em produção (VPS)
 
@@ -164,6 +219,9 @@ fredda-pizzaria/
 │   │   └── login/                  # Página de login
 │   ├── (dashboard)/                # Área autenticada (requer sessão)
 │   │   ├── dashboard/              # Dashboard com KPIs reais
+│   │   ├── pedidos/                # Pedidos do WhatsApp e clientes aguardando atendente
+│   │   │   ├── [id]/               # Detalhe do pedido + conversa + confirmar/entregar/cancelar
+│   │   │   └── conversas/[id]/     # Conversa: responder o cliente, assumir/devolver ao bot
 │   │   ├── producao/               # Painel de ordens de produção
 │   │   │   ├── nova/               # Criar nova ordem com verificação de estoque
 │   │   │   └── [id]/               # Detalhe da ordem + timers de fermentação
@@ -184,15 +242,27 @@ fredda-pizzaria/
 │   │   │   └── [id]/movimentacoes/ # Histórico e registro de movimentações
 │   │   ├── receitas/               # GET, POST, PUT, DELETE (soft)
 │   │   ├── vendas/                 # GET (filtros), POST (baixa estoque de produto pronto)
+│   │   │   └── [id]/               # PATCH (pago/entregue), DELETE (ADMIN, estorna estoque)
+│   │   ├── pedidos/                # GET (filtro por status), resumo para o badge
+│   │   │   └── [id]/               # GET, PATCH (confirmar/entregar/cancelar + aviso no WhatsApp)
+│   │   ├── conversas/              # Conversas com atendente, resposta manual, assumir/devolver
+│   │   ├── whatsapp/webhook/       # Webhook da Meta (verificação + mensagens recebidas)
 │   │   └── ordens/                 # GET, POST, PATCH (conclusão repõe estoque de produto pronto)
 │   │       └── [id]/etapas/[etapaId]/
 │   │           └── condicoes/      # Registro de temperatura, umidade, observações
 │   ├── layout.tsx                  # Layout raiz com SessionProvider
 │   └── providers.tsx               # Client providers
 ├── components/
-│   └── Sidebar.tsx                 # Navegação lateral
+│   ├── Sidebar.tsx                 # Navegação lateral
+│   └── Transcricao.tsx             # Conversa do WhatsApp em balões
 ├── lib/
 │   ├── auth.ts                     # authOptions (NextAuth config)
+│   ├── api-auth.ts                 # exigirSessao(role?) usado em todas as rotas de API
+│   ├── estoque.ts                  # Baixa atômica de estoque (sem estoque negativo em acessos simultâneos)
+│   ├── ordens.ts                   # Concluir/cancelar ordem (reposição e estorno de insumos)
+│   ├── pedidos.ts                  # Criar/confirmar/entregar/cancelar pedidos
+│   ├── whatsapp.ts                 # Envio, assinatura do webhook e fila por cliente
+│   ├── chatbot/                    # Agente (Claude), prompt, ferramentas e avisos ao cliente
 │   └── prisma.ts                   # Singleton do PrismaClient
 ├── prisma/
 │   ├── schema.prisma               # Models: User, Fornecedor, Categoria, Insumo, MovimentacaoEstoque
@@ -200,7 +270,10 @@ fredda-pizzaria/
 │   └── seed.ts                     # Dados iniciais
 ├── types/
 │   └── next-auth.d.ts              # Extensão de tipos (id, role na sessão)
+├── scripts/
+│   └── chat-local.ts               # npm run chat — testa o chatbot pelo terminal
 ├── middleware.ts                   # Proteção de rotas autenticadas
+├── Caddyfile                       # Proxy HTTPS (perfil "https" do docker-compose)
 ├── docker-compose.yml
 ├── Dockerfile                      # Build multi-stage + Prisma Client para Alpine (musl)
 ├── docker-entrypoint.sh            # Aplica migrations automaticamente antes de iniciar o server
@@ -219,13 +292,16 @@ Categoria            — id, nome (unique), descricao, ativo
 Insumo               — id, nome, unidade, estoqueAtual, estoqueMinimo, precoUnitario,
                        categoriaId, fornecedorId, ativo
 MovimentacaoEstoque  — id, tipo (ENTRADA | SAIDA), quantidade, lote, dataVencimento,
-                       precoUnitario, motivo, insumoId, fornecedorId, usuarioId
+                       precoUnitario, motivo, insumoId, fornecedorId, usuarioId,
+                       ordemId (baixa/estorno gerados por ordem de produção)
 
-Receita              — id, nome, descricao, rendimento (Decimal), estoqueAtual (Decimal, produto pronto), ativo
+Receita              — id, nome, descricao, rendimento (Decimal), estoqueAtual (Decimal, produto pronto),
+                       precoVenda (cardápio do chatbot), ativo
 ReceitaInsumo        — id, receitaId, insumoId, quantidade (Decimal); unique(receitaId,insumoId)
 OrdemProducao        — id, status (PLANEJADA|EM_ANDAMENTO|PAUSADA|CONCLUIDA|CANCELADA),
                        quantidade, dataPrevista, observacoes, receitaId, usuarioId
-                       (ao concluir, incrementa Receita.estoqueAtual)
+                       (ao criar, baixa os insumos; ao concluir, incrementa Receita.estoqueAtual;
+                        ao cancelar, estorna os insumos)
 EtapaFermentacao     — id, nome (MISTURA|DESCANSO_INICIAL|FERMENTACAO_LONGA|MODELAGEM|CONGELAMENTO),
                        ordem, status (PENDENTE|EM_ANDAMENTO|PAUSADA|CONCLUIDA),
                        duracaoMinutos, minutosDecorridos, iniciadaEm, concluidaEm, ordemId
@@ -233,7 +309,16 @@ RegistroCondicoes    — id, temperatura, umidade, observacoes, createdAt, etapa
 
 Venda                — id, cliente, quantidade (Decimal), precoUnitario, valorTotal,
                        formaPagamento, pago, entregue, dataVenda, dataEntrega, observacoes,
-                       receitaId, usuarioId (ao registrar, decrementa Receita.estoqueAtual)
+                       receitaId, usuarioId, pedidoId (ao registrar, decrementa Receita.estoqueAtual)
+
+Cliente              — id, nome, telefone (wa_id do WhatsApp, único), endereco
+Pedido               — id (número do pedido), status (PENDENTE|CONFIRMADO|ENTREGUE|CANCELADO),
+                       canal (WHATSAPP|MANUAL), tipoEntrega (RETIRADA|ENTREGA), enderecoEntrega,
+                       formaPagamento, dataEntregaDesejada, observacoes, valorTotal, clienteId, conversaId
+PedidoItem           — id, pedidoId, receitaId, quantidade, precoUnitario (preço do cardápio no momento)
+Conversa             — id, clienteId, status (BOT|HUMANO|ENCERRADA), historico (JSON com as mensagens
+                       no formato da API da Anthropic), ultimaMensagemEm
+MensagemWhatsApp     — id, waMessageId (único, evita reprocessar reenvios), direcao, texto, conversaId
 ```
 
 > **Atenção:** após clonar o repositório, execute `npx prisma migrate dev` para aplicar todas as migrations.
@@ -273,6 +358,7 @@ Venda                — id, cliente, quantidade (Decimal), precoUnitario, valor
 - [x] Exportação/importação de dados históricos em CSV
 - [x] Rebrand visual e responsividade mobile
 
+<<<<<<< Updated upstream
 ### Sprint 5 — Modelagem de IA (semanas 9–10)
 - [ ] Coleta e preparação dos dados históricos de vendas
 - [ ] Análise exploratória e definição da abordagem (baseline vs. Prophet/SARIMA/XGBoost)
@@ -291,6 +377,16 @@ Venda                — id, cliente, quantidade (Decimal), precoUnitario, valor
 - [ ] Pipeline CI/CD (GitHub Actions)
 - [ ] Deploy completo (app + IA) na VPS
 - [ ] Testes finais com o parceiro e documentação final
+=======
+### Sprint 5 — IA e entrega (semanas 9–10)
+- [x] Correções de consistência: baixa de insumos pela ordem de produção, estoque atômico em vendas/saídas, alertas de estoque mínimo, permissões por perfil
+- [x] Edição (pago/entregue) e cancelamento de vendas com estorno
+- [x] Chatbot de pedidos pelo WhatsApp (Claude Sonnet 5.5 + Meta Cloud API) com painel de pedidos e atendimento humano
+- [ ] Microservice Python com modelo preditivo
+- [ ] Sugestão de produção semanal
+- [ ] Testes finais com o parceiro
+- [ ] Documentação final
+>>>>>>> Stashed changes
 
 ---
 

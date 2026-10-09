@@ -23,6 +23,7 @@ export default function NovaReceitaPage() {
   const [nome, setNome] = useState('')
   const [descricao, setDescricao] = useState('')
   const [rendimento, setRendimento] = useState('')
+  const [precoVenda, setPrecoVenda] = useState('')
   const [itens, setItens] = useState<ItemReceita[]>([{ insumoId: '', quantidade: '' }])
   const [insumos, setInsumos] = useState<InsumoOpcao[]>([])
   const [salvando, setSalvando] = useState(false)
@@ -36,6 +37,7 @@ export default function NovaReceitaPage() {
         setNome(data.nome)
         setDescricao(data.descricao || '')
         setRendimento(String(data.rendimento))
+        setPrecoVenda(data.precoVenda ? String(data.precoVenda) : '')
         setItens(data.insumos.map((i: { insumoId: string; quantidade: string }) => ({
           insumoId: i.insumoId,
           quantidade: String(i.quantidade),
@@ -70,7 +72,13 @@ export default function NovaReceitaPage() {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome, descricao, rendimento: Number(rendimento), insumos: itensValidos }),
+      body: JSON.stringify({
+        nome,
+        descricao,
+        rendimento: Number(rendimento),
+        precoVenda: precoVenda ? Number(precoVenda) : null,
+        insumos: itensValidos,
+      }),
     })
 
     setSalvando(false)
@@ -123,6 +131,21 @@ export default function NovaReceitaPage() {
               placeholder="Ex: 8"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Preço de venda (R$)</label>
+            <input
+              type="number"
+              min="0.01"
+              step="0.01"
+              value={precoVenda}
+              onChange={(e) => setPrecoVenda(e.target.value)}
+              placeholder="Ex: 45.00"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Só receitas com preço aparecem no cardápio do chatbot de pedidos.
+            </p>
           </div>
         </div>
 

@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { exigirSessao } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
+import { concluirOrdem, OrdemFinalizadaError, STATUS_FINAIS } from '@/lib/ordens'
 
 type Params = { params: { id: string; etapaId: string } }
 
 export async function PATCH(req: Request, { params }: Params) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  const session = await exigirSessao()
+  if (session instanceof NextResponse) return session
 
   const { acao } = await req.json()
 
@@ -22,6 +22,10 @@ export async function PATCH(req: Request, { params }: Params) {
 
   if (!etapa || etapa.ordemId !== params.id) {
     return NextResponse.json({ error: 'Etapa não encontrada' }, { status: 404 })
+  }
+
+  if (STATUS_FINAIS.includes(etapa.ordem_producao.status)) {
+    return NextResponse.json({ error: 'Ordem já foi concluída ou cancelada' }, { status: 409 })
   }
 
   const agora = new Date()
@@ -95,6 +99,7 @@ export async function PATCH(req: Request, { params }: Params) {
     })
 
     if (pendentes === 0) {
+<<<<<<< Updated upstream
       await prisma.$transaction([
         prisma.ordemProducao.update({
           where: { id: params.id },
@@ -107,6 +112,16 @@ export async function PATCH(req: Request, { params }: Params) {
           })
         ),
       ])
+=======
+      try {
+        await prisma.$transaction((tx) => concluirOrdem(tx, params.id))
+      } catch (e) {
+        if (e instanceof OrdemFinalizadaError) {
+          return NextResponse.json({ error: e.message }, { status: 409 })
+        }
+        throw e
+      }
+>>>>>>> Stashed changes
     } else {
       await prisma.ordemProducao.update({
         where: { id: params.id },

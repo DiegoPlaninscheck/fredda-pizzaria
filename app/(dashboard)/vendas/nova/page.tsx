@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { FORMAS_PAGAMENTO } from '@/lib/constantes'
 
 interface Receita {
   id: string
   nome: string
   estoqueAtual: string
+  precoVenda: string | null
 }
 
-const FORMAS_PAGAMENTO = ['PIX NA CONTA', 'PIX NA MÁQUINA', 'DINHEIRO', 'DÉBITO', 'CRÉDITO', 'PERMUTA']
 
 export default function NovaVendaPage() {
   const router = useRouter()
@@ -97,7 +98,11 @@ export default function NovaVendaPage() {
             <select
               required
               value={receitaId}
-              onChange={(e) => setReceitaId(e.target.value)}
+              onChange={(e) => {
+                setReceitaId(e.target.value)
+                const preco = receitas.find((r) => r.id === e.target.value)?.precoVenda
+                if (preco) setPrecoUnitario(String(Number(preco)))
+              }}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               <option value="">Selecione a receita</option>

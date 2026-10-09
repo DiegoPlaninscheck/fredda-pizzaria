@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { exigirSessao } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
+import { cancelarOrdem, concluirOrdem, OrdemFinalizadaError } from '@/lib/ordens'
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  const session = await exigirSessao()
+  if (session instanceof NextResponse) return session
 
   const ordem = await prisma.ordemProducao.findUnique({
     where: { id: params.id },
@@ -32,8 +32,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 }
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  const session = await exigirSessao()
+  if (session instanceof NextResponse) return session
 
   const body = await req.json()
   const { status } = body
@@ -48,6 +48,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   })
   if (!atual) return NextResponse.json({ error: 'Não encontrada' }, { status: 404 })
 
+<<<<<<< Updated upstream
   const deveIncrementarEstoque = status === 'CONCLUIDA' && atual.status !== 'CONCLUIDA'
 
   const [ordem] = await prisma.$transaction([
@@ -66,4 +67,19 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   ])
 
   return NextResponse.json(ordem)
+=======
+  try {
+    const ordem = await prisma.$transaction(async (tx) => {
+      if (status === 'CONCLUIDA') await concluirOrdem(tx, params.id)
+      else await cancelarOrdem(tx, params.id, session.user.id)
+      return tx.ordemProducao.findUniqueOrThrow({ where: { id: params.id } })
+    })
+    return NextResponse.json(ordem)
+  } catch (e) {
+    if (e instanceof OrdemFinalizadaError) {
+      return NextResponse.json({ error: e.message }, { status: 409 })
+    }
+    throw e
+  }
+>>>>>>> Stashed changes
 }

@@ -97,6 +97,10 @@ export default function CategoriasPage() {
     if (!confirm(`Reativar categoria "${cat.nome}"?`)) return
     const res = await fetch(`/api/categorias/${cat.id}`, { method: 'PATCH' })
     if (res.ok) carregarCategorias()
+    else {
+      const data = await res.json()
+      alert(data.error || 'Erro ao reativar')
+    }
   }
 
   return (

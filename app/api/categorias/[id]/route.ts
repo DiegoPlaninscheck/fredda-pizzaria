@@ -1,14 +1,17 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { exigirSessao } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  const session = await exigirSessao()
+  if (session instanceof NextResponse) return session
 
   const body = await req.json()
   const { nome, descricao, ativo } = body
+
+  if (ativo !== undefined && session.user.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Apenas administradores podem ativar ou inativar categorias' }, { status: 403 })
+  }
 
   if (!nome?.trim()) {
     return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
@@ -34,8 +37,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 }
 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  const session = await exigirSessao('ADMIN')
+  if (session instanceof NextResponse) return session
 
   const emUso = await prisma.insumo.findFirst({ where: { categoriaId: params.id, ativo: true } })
   if (emUso) {
@@ -47,8 +50,8 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
 }
 
 export async function PATCH(_req: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  const session = await exigirSessao('ADMIN')
+  if (session instanceof NextResponse) return session
 
   const categoria = await prisma.categoria.update({
     where: { id: params.id },

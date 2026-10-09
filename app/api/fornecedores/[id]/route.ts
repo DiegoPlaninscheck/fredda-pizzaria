@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { exigirSessao } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 
 function validarCNPJ(cnpj: string): boolean {
@@ -25,8 +24,8 @@ function validarCNPJ(cnpj: string): boolean {
 }
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  const session = await exigirSessao()
+  if (session instanceof NextResponse) return session
 
   const fornecedor = await prisma.fornecedor.findUnique({ where: { id: params.id } })
   if (!fornecedor) return NextResponse.json({ error: 'Não encontrado' }, { status: 404 })
@@ -35,11 +34,18 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 }
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  const session = await exigirSessao()
+  if (session instanceof NextResponse) return session
 
   const body = await req.json()
   const { nome, cnpj, telefone, email, endereco, ativo } = body
+
+  if (ativo === false && session.user.role !== 'ADMIN') {
+    const atual = await prisma.fornecedor.findUnique({ where: { id: params.id }, select: { ativo: true } })
+    if (atual?.ativo) {
+      return NextResponse.json({ error: 'Apenas administradores podem inativar fornecedores' }, { status: 403 })
+    }
+  }
 
   if (!nome?.trim()) {
     return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
@@ -74,8 +80,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 }
 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  const session = await exigirSessao('ADMIN')
+  if (session instanceof NextResponse) return session
 
   await prisma.fornecedor.update({
     where: { id: params.id },

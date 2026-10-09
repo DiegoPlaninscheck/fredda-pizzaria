@@ -188,6 +188,7 @@ export default function NovaOrdemPage() {
             <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
               Insumos necessários
             </h2>
+<<<<<<< Updated upstream
             {receitasSelecionadas.map((r) => (
               <div key={r.id}>
                 <p className="text-xs font-semibold text-gray-500 mb-2">{r.nome}</p>
@@ -220,6 +221,35 @@ export default function NovaOrdemPage() {
             ))}
             <p className="text-xs text-gray-400">
               Insumos com estoque insuficiente não impedem a criação da ordem — sirvem apenas de aviso.
+=======
+            <div className="space-y-2">
+              {receitaSelecionada.insumos.map((ri) => {
+                const necessario = necessidadeInsumo(ri)
+                const disponivel = Number(ri.insumo.estoqueAtual)
+                const suficiente = disponivel >= necessario
+                return (
+                  <div
+                    key={ri.id}
+                    className={`flex items-center justify-between rounded-lg px-3 py-2 ${
+                      suficiente ? 'bg-green-50' : 'bg-red-50'
+                    }`}
+                  >
+                    <span className="text-sm text-gray-700">{ri.insumo.nome}</span>
+                    <div className="text-right">
+                      <span className={`text-sm font-medium ${suficiente ? 'text-green-700' : 'text-red-700'}`}>
+                        {necessario.toLocaleString('pt-BR', { maximumFractionDigits: 3 })} {ri.insumo.unidade}
+                      </span>
+                      <span className="text-xs text-gray-500 ml-2">
+                        (est. {disponivel.toLocaleString('pt-BR', { maximumFractionDigits: 3 })})
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <p className="text-xs text-gray-400 mt-3">
+              Estas quantidades são baixadas do estoque ao criar a ordem e devolvidas se ela for cancelada.
+>>>>>>> Stashed changes
             </p>
           </div>
         )}
