@@ -42,32 +42,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return NextResponse.json({ error: 'Status inválido' }, { status: 400 })
   }
 
-  const atual = await prisma.ordemProducao.findUnique({
-    where: { id: params.id },
-    include: { receitas: true },
-  })
+  const atual = await prisma.ordemProducao.findUnique({ where: { id: params.id } })
   if (!atual) return NextResponse.json({ error: 'Não encontrada' }, { status: 404 })
 
-<<<<<<< Updated upstream
-  const deveIncrementarEstoque = status === 'CONCLUIDA' && atual.status !== 'CONCLUIDA'
-
-  const [ordem] = await prisma.$transaction([
-    prisma.ordemProducao.update({
-      where: { id: params.id },
-      data: { status },
-    }),
-    ...(deveIncrementarEstoque
-      ? atual.receitas.map((r) =>
-          prisma.receita.update({
-            where: { id: r.receitaId },
-            data: { estoqueAtual: { increment: r.quantidade } },
-          })
-        )
-      : []),
-  ])
-
-  return NextResponse.json(ordem)
-=======
   try {
     const ordem = await prisma.$transaction(async (tx) => {
       if (status === 'CONCLUIDA') await concluirOrdem(tx, params.id)
@@ -81,5 +58,4 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     }
     throw e
   }
->>>>>>> Stashed changes
 }

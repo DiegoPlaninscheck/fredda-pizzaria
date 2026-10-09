@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { enfileirar, enviarTexto, whatsappConfigurado } from '@/lib/whatsapp'
-import { registrarMensagemDaEquipe } from '@/lib/chatbot/agente'
+import { registrarMensagemDaEquipe } from '@/lib/chatbot/conversas'
 
 const JANELA_ATENDIMENTO_MS = 24 * 60 * 60 * 1000
 

@@ -17,7 +17,7 @@ export async function PATCH(req: Request, { params }: Params) {
 
   const etapa = await prisma.etapaFermentacao.findUnique({
     where: { id: params.etapaId },
-    include: { ordem_producao: { include: { receitas: true } } },
+    include: { ordem_producao: true },
   })
 
   if (!etapa || etapa.ordemId !== params.id) {
@@ -99,20 +99,6 @@ export async function PATCH(req: Request, { params }: Params) {
     })
 
     if (pendentes === 0) {
-<<<<<<< Updated upstream
-      await prisma.$transaction([
-        prisma.ordemProducao.update({
-          where: { id: params.id },
-          data: { status: 'CONCLUIDA' },
-        }),
-        ...etapa.ordem_producao.receitas.map((r) =>
-          prisma.receita.update({
-            where: { id: r.receitaId },
-            data: { estoqueAtual: { increment: r.quantidade } },
-          })
-        ),
-      ])
-=======
       try {
         await prisma.$transaction((tx) => concluirOrdem(tx, params.id))
       } catch (e) {
@@ -121,7 +107,6 @@ export async function PATCH(req: Request, { params }: Params) {
         }
         throw e
       }
->>>>>>> Stashed changes
     } else {
       await prisma.ordemProducao.update({
         where: { id: params.id },

@@ -24,11 +24,11 @@ async function finalizar(tx: Tx, ordemId: string, status: StatusOrdem) {
   if (count === 0) throw new OrdemFinalizadaError()
 }
 
-/** Conclui a ordem, fecha as etapas abertas e repõe o estoque de produto pronto. */
+/** Conclui a ordem, fecha as etapas abertas e repõe o estoque de produto pronto de cada receita. */
 export async function concluirOrdem(tx: Tx, ordemId: string) {
   await finalizar(tx, ordemId, 'CONCLUIDA')
 
-  const ordem = await tx.ordemProducao.findUniqueOrThrow({ where: { id: ordemId } })
+  const receitas = await tx.ordemReceita.findMany({ where: { ordemId } })
   const agora = new Date()
 
   const abertas = await tx.etapaFermentacao.findMany({
@@ -49,7 +49,9 @@ export async function concluirOrdem(tx: Tx, ordemId: string) {
     })
   }
 
-  await reporEstoqueReceita(tx, ordem.receitaId, ordem.quantidade)
+  for (const r of receitas) {
+    await reporEstoqueReceita(tx, r.receitaId, r.quantidade)
+  }
 }
 
 /** Cancela a ordem, pausa a etapa em andamento e devolve os insumos baixados na criação. */

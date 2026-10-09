@@ -40,6 +40,26 @@ export async function reporEstoqueReceita(tx: Tx, receitaId: string, quantidade:
   })
 }
 
+/**
+ * Baixa até `quantidade` do insumo, limitada ao saldo atual, e devolve quanto
+ * foi baixado. Usada pelas ordens de produção, que podem ser criadas mesmo
+ * com insumo insuficiente (nesse caso a falta vira só um aviso).
+ */
+export async function baixarEstoqueInsumoAteODisponivel(tx: Tx, insumoId: string, quantidade: Quantidade) {
+  const insumo = await tx.insumo.findUniqueOrThrow({ where: { id: insumoId }, select: { estoqueAtual: true } })
+  const baixa = Prisma.Decimal.min(insumo.estoqueAtual, quantidade)
+  if (baixa.lte(0)) return new Prisma.Decimal(0)
+
+  try {
+    await baixarEstoqueInsumo(tx, insumoId, baixa)
+    return baixa
+  } catch (e) {
+    // Outra operação consumiu o saldo no meio do caminho: não baixa nada deste insumo
+    if (e instanceof EstoqueInsuficienteError) return new Prisma.Decimal(0)
+    throw e
+  }
+}
+
 /** Mesmo princípio de `baixarEstoqueReceita`, para insumos. */
 export async function baixarEstoqueInsumo(tx: Tx, insumoId: string, quantidade: Quantidade) {
   const { count } = await tx.insumo.updateMany({

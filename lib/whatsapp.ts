@@ -1,10 +1,25 @@
 import crypto from 'crypto'
+import type { MensagemSaida } from '@/lib/chatbot/mensagens'
 
 const GRAPH_API = `https://graph.facebook.com/${process.env.WHATSAPP_API_VERSION || 'v23.0'}`
 const LIMITE_TEXTO = 4096 // limite da Cloud API por mensagem
 
 export function whatsappConfigurado() {
   return Boolean(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID)
+}
+
+/** Clientes criados pelo simulador do painel usam telefones começando com 000. */
+export function ehTelefoneSimulado(telefone: string) {
+  return telefone.startsWith('000')
+}
+
+function podeEnviar(para: string, descricao: string) {
+  if (ehTelefoneSimulado(para)) return false
+  if (!whatsappConfigurado()) {
+    console.warn(`[whatsapp] não configurado — mensagem para ${para} não enviada:\n${descricao}`)
+    return false
+  }
+  return true
 }
 
 async function chamarGraphApi(corpo: Record<string, unknown>) {
@@ -24,10 +39,7 @@ async function chamarGraphApi(corpo: Record<string, unknown>) {
 
 /** Envia uma mensagem de texto (quebrando em partes se passar do limite da API). */
 export async function enviarTexto(para: string, texto: string) {
-  if (!whatsappConfigurado()) {
-    console.warn(`[whatsapp] não configurado — mensagem para ${para} não enviada:\n${texto}`)
-    return
-  }
+  if (!podeEnviar(para, texto)) return
   for (let i = 0; i < texto.length; i += LIMITE_TEXTO) {
     await chamarGraphApi({
       to: para,
@@ -35,6 +47,33 @@ export async function enviarTexto(para: string, texto: string) {
       text: { body: texto.slice(i, i + LIMITE_TEXTO), preview_url: false },
     })
   }
+}
+
+/** Envia uma mensagem do atendimento automático (texto, botões ou lista). */
+export async function enviarMensagem(para: string, msg: MensagemSaida) {
+  if (msg.tipo === 'texto') return enviarTexto(para, msg.texto)
+  if (!podeEnviar(para, msg.texto)) return
+
+  const action =
+    msg.tipo === 'botoes'
+      ? { buttons: msg.botoes.map((b) => ({ type: 'reply', reply: { id: b.id, title: b.titulo } })) }
+      : {
+          button: msg.botao,
+          sections: [{
+            title: 'Opções',
+            rows: msg.opcoes.map((o) => ({ id: o.id, title: o.titulo, description: o.descricao })),
+          }],
+        }
+
+  await chamarGraphApi({
+    to: para,
+    type: 'interactive',
+    interactive: {
+      type: msg.tipo === 'botoes' ? 'button' : 'list',
+      body: { text: msg.texto },
+      action,
+    },
+  })
 }
 
 /** Marca a mensagem como lida (os "dois tiques azuis" para o cliente). */
@@ -62,6 +101,8 @@ export interface MensagemWhatsAppRecebida {
   telefone: string
   nomePerfil?: string
   texto: string
+  /** id da opção quando o cliente toca em um botão ou item de lista */
+  respostaId?: string
 }
 
 interface PayloadWebhook {
@@ -76,7 +117,10 @@ interface PayloadWebhook {
           type: string
           text?: { body: string }
           button?: { text: string }
-          interactive?: { button_reply?: { title: string }; list_reply?: { title: string } }
+          interactive?: {
+            button_reply?: { id: string; title: string }
+            list_reply?: { id: string; title: string }
+          }
         }[]
       }
     }[]
@@ -97,11 +141,11 @@ export function extrairMensagens(payload: PayloadWebhook): MensagemWhatsAppReceb
       const contatos = change.value.contacts ?? []
 
       for (const m of change.value.messages) {
+        const resposta = m.interactive?.button_reply ?? m.interactive?.list_reply
         const texto =
           m.text?.body ??
           m.button?.text ??
-          m.interactive?.button_reply?.title ??
-          m.interactive?.list_reply?.title ??
+          resposta?.title ??
           `[O cliente enviou uma mensagem do tipo "${m.type}", que não consigo ler. Peça para ele escrever em texto.]`
 
         mensagens.push({
@@ -109,6 +153,7 @@ export function extrairMensagens(payload: PayloadWebhook): MensagemWhatsAppReceb
           telefone: m.from,
           nomePerfil: contatos.find((c) => c.wa_id === m.from)?.profile?.name,
           texto,
+          respostaId: resposta?.id,
         })
       }
     }

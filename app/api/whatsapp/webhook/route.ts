@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { assinaturaValida, enfileirar, enviarTexto, extrairMensagens, marcarComoLida } from '@/lib/whatsapp'
-import { responderMensagem } from '@/lib/chatbot/agente'
+import { assinaturaValida, enfileirar, enviarMensagem, extrairMensagens, marcarComoLida } from '@/lib/whatsapp'
+import { atenderMensagem } from '@/lib/chatbot/atendimento'
 
 // Rota pública (fora do middleware): quem autentica é a assinatura da Meta.
 export const dynamic = 'force-dynamic'
@@ -36,8 +36,8 @@ export async function POST(req: Request) {
   for (const mensagem of extrairMensagens(payload)) {
     enfileirar(mensagem.telefone, async () => {
       await marcarComoLida(mensagem.waMessageId)
-      const { texto } = await responderMensagem(mensagem)
-      if (texto) await enviarTexto(mensagem.telefone, texto)
+      const saidas = await atenderMensagem(mensagem)
+      for (const saida of saidas) await enviarMensagem(mensagem.telefone, saida)
     }).catch((e) => console.error(`[whatsapp] erro ao processar mensagem de ${mensagem.telefone}:`, e))
   }
 

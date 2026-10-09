@@ -17,6 +17,7 @@ export const STATUS_PEDIDO_STYLE: Record<string, string> = {
 
 /** 5547999998888 → (47) 99999-8888; outros países ficam no formato internacional. */
 export function formatarTelefone(telefone: string) {
+  if (telefone.startsWith('000')) return `Simulador ${telefone.slice(3)}`
   const m = telefone.match(/^55(\d{2})(\d{4,5})(\d{4})$/)
   return m ? `(${m[1]}) ${m[2]}-${m[3]}` : `+${telefone}`
 }

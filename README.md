@@ -36,7 +36,7 @@ O **Fredda Pizzaria** é um sistema dedicado que resolve esses pontos com:
 - Estoque de produto pronto por sabor, atualizado automaticamente por produção e vendas
 - Registro de vendas com controle de pagamento e entrega
 - Dashboard operacional com KPIs em tempo real
-- Pedidos pelo WhatsApp com um chatbot inteligente (Claude) que consulta o cardápio e o estoque reais
+- Pedidos pelo WhatsApp com menu guiado e IA (Claude) para ajudar quando o cliente foge do roteiro
 - Previsão de demanda semanal com modelo de IA treinado com dados históricos
 
 ---
@@ -50,43 +50,42 @@ O **Fredda Pizzaria** é um sistema dedicado que resolve esses pontos com:
 | **Receitas** | Fichas técnicas com ingredientes e rendimento | ✅ Concluído |
 | **Processo produtivo** | Ordens de produção, timers de fermentação, condições ambientais | ✅ Concluído |
 | **Vendas e estoque de produto pronto** | Registro de vendas, baixa/reposição automática de estoque de pizzas, KPIs de faturamento | ✅ Concluído |
-| **Pedidos via WhatsApp (chatbot)** | Cliente faz o pedido conversando com um assistente (Claude Sonnet 5.5); equipe confirma no painel | ✅ Concluído |
+| **Pedidos via WhatsApp (chatbot)** | Menu guiado com botões + IA (Claude Sonnet 5.5) como plano B; equipe confirma no painel | ✅ Concluído |
 | **Previsão de demanda** | Modelo preditivo, sugestão de produção | 📅 Planejado |
 
 ---
 
 ## 🤖 Pedidos pelo WhatsApp (chatbot)
 
-O cliente conversa com a Fredda pelo WhatsApp e o pedido cai direto no sistema:
+O cliente faz o pedido pelo WhatsApp e ele cai direto no sistema. O atendimento é um **menu guiado com botões**, já que o pedido segue sempre o mesmo roteiro, e usa **IA como plano B** quando o cliente escreve algo que o menu não entende.
 
 ```
 Cliente (WhatsApp) → Meta Cloud API → POST /api/whatsapp/webhook
   → valida a assinatura, ignora reenvios e responde 200 na hora
-  → em segundo plano (fila por cliente): histórico da conversa → Claude + ferramentas → resposta
+  → em segundo plano (fila por cliente):
+      fluxo guiado (lib/chatbot/fluxo.ts) ── entendeu ──→ próxima etapa (botões/lista)
+            └── não entendeu ──→ IA (Claude) com o contexto do carrinho ──→ resposta + [Continuar pedido] [Menu]
+                                   └── IA desligada/falhou ──→ "não entendi" + opções da etapa
 Pedido criado = "Aguardando confirmação" (pizzas reservadas no estoque) → aparece em /pedidos
   → equipe confirma (gera as vendas) → entregue   |   cancelado (estoque devolvido)
   → cada mudança de status é avisada ao cliente pelo WhatsApp
 ```
 
-**O que o assistente faz** (ferramentas em `lib/chatbot/ferramentas.ts`): mostra o cardápio com preço e disponibilidade reais, salva nome e endereço do cliente, monta o pedido e **só registra depois que o cliente confirma o resumo**, consulta e cancela pedidos que ainda não foram confirmados e chama um atendente humano quando necessário (o bot fica pausado até a equipe devolver a conversa).
+**Fluxo guiado:** menu (Fazer pedido · Meus pedidos · Atendente) → sabores (lista do WhatsApp, paginada de 9 em 9 quando passa de 10) → quantidade (botões 1/2/3 ou número digitado) → carrinho (Outro sabor · Finalizar · Esvaziar) → nome (só no primeiro pedido) → retirada ou entrega → endereço (oferece o último usado) → forma de pagamento → resumo e confirmação. Em "Meus pedidos" o cliente vê o status e pode cancelar um pedido que ainda aguarda confirmação. O fluxo também entende texto digitado que corresponde às opções ("calabrese", "pix", "sim", "menu").
 
-**Segurança:** o cliente é identificado no servidor pelo telefone do WhatsApp; o modelo nunca escolhe de quem é o pedido, então uma mensagem maliciosa não acessa dados de outro cliente. Os preços são sempre recalculados a partir do cardápio, e o webhook só aceita requisições assinadas pela Meta (`X-Hub-Signature-256`).
+**IA (plano B):** entra quando o cliente escreve algo fora do menu, como uma dúvida ("vocês entregam em Blumenau?") ou um pedido por extenso ("quero 2 calabresas pra sábado"). Ela recebe a etapa e o carrinho em que o cliente parou, usa as mesmas regras de negócio (ferramentas em `lib/chatbot/ferramentas.ts`) e, se não souber algo (preparo, ingredientes, área de entrega), chama um atendente em vez de inventar. **Sem `ANTHROPIC_API_KEY` o atendimento funciona só com o menu.**
 
-**Modelo e custo:** `claude-sonnet-5-5` com effort `low`, prompt caching (prompt de sistema, ferramentas e histórico) e *fallback* automático para outro modelo em caso de recusa. Um pedido completo custa em torno de US$ 0,01–0,03.
+**Segurança:** o cliente é identificado no servidor pelo telefone do WhatsApp, e nem o menu nem a IA escolhem de quem é o pedido; uma mensagem maliciosa não acessa dados de outro cliente. Os preços são sempre recalculados a partir do cardápio, e o webhook só aceita requisições assinadas pela Meta (`X-Hub-Signature-256`).
+
+**Modelo e custo da IA:** `claude-sonnet-5-5` com effort `low`, prompt caching e *fallback* automático para outro modelo em caso de recusa. Como a IA só responde mensagens fora do menu, o custo fica abaixo dos US$ 0,01–0,03 que um pedido inteiro conversado custaria.
 
 **Painel:** `/pedidos` lista os pedidos (atualiza a cada 15s) e os clientes aguardando atendente; o detalhe do pedido mostra a conversa e os botões Confirmar / Entregue / Cancelar; a tela da conversa permite responder o cliente pelo próprio painel. A navegação lateral mostra um contador de pedidos pendentes.
 
-> Só receitas com **preço de venda** preenchido aparecem no cardápio do chatbot.
+> Só receitas com **preço de venda** preenchido (e estoque de produto pronto) aparecem no cardápio do chatbot.
 
-### Testar sem WhatsApp
+### Testar sem WhatsApp: simulador
 
-```bash
-# precisa de ANTHROPIC_API_KEY no .env
-npm run chat                    # conversa pelo terminal como um cliente fictício
-npm run chat -- 5547988887777   # simula outro cliente
-```
-
-Os pedidos criados no terminal aparecem normalmente em `/pedidos`.
+Em **Pedidos → 💬 Simular cliente** (`/pedidos/simulador`) há uma tela que imita o WhatsApp, com os mesmos botões e listas. Ela passa exatamente pelo mesmo atendimento do webhook e funciona sem WhatsApp e sem chave da Anthropic. Os pedidos criados ali são reais (reservam estoque e aparecem em `/pedidos`) e ficam identificados como "Simulador"; o simulador só aceita telefones de teste começando com `000`, que nunca são enviados para a Meta.
 
 ### Configurar o WhatsApp (Meta Cloud API)
 
@@ -220,6 +219,7 @@ fredda-pizzaria/
 │   ├── (dashboard)/                # Área autenticada (requer sessão)
 │   │   ├── dashboard/              # Dashboard com KPIs reais
 │   │   ├── pedidos/                # Pedidos do WhatsApp e clientes aguardando atendente
+│   │   │   ├── simulador/          # Simulador do WhatsApp para testar o atendimento
 │   │   │   ├── [id]/               # Detalhe do pedido + conversa + confirmar/entregar/cancelar
 │   │   │   └── conversas/[id]/     # Conversa: responder o cliente, assumir/devolver ao bot
 │   │   ├── producao/               # Painel de ordens de produção
@@ -247,6 +247,7 @@ fredda-pizzaria/
 │   │   │   └── [id]/               # GET, PATCH (confirmar/entregar/cancelar + aviso no WhatsApp)
 │   │   ├── conversas/              # Conversas com atendente, resposta manual, assumir/devolver
 │   │   ├── whatsapp/webhook/       # Webhook da Meta (verificação + mensagens recebidas)
+│   │   ├── chatbot/simulador/      # Atendimento simulado (telefones 000…, sem envio à Meta)
 │   │   └── ordens/                 # GET, POST, PATCH (conclusão repõe estoque de produto pronto)
 │   │       └── [id]/etapas/[etapaId]/
 │   │           └── condicoes/      # Registro de temperatura, umidade, observações
@@ -262,7 +263,8 @@ fredda-pizzaria/
 │   ├── ordens.ts                   # Concluir/cancelar ordem (reposição e estorno de insumos)
 │   ├── pedidos.ts                  # Criar/confirmar/entregar/cancelar pedidos
 │   ├── whatsapp.ts                 # Envio, assinatura do webhook e fila por cliente
-│   ├── chatbot/                    # Agente (Claude), prompt, ferramentas e avisos ao cliente
+│   ├── chatbot/                    # Atendimento: fluxo guiado (fluxo.ts), IA plano B (agente.ts),
+│   │                               # orquestração (atendimento.ts), prompt, ferramentas e avisos
 │   └── prisma.ts                   # Singleton do PrismaClient
 ├── prisma/
 │   ├── schema.prisma               # Models: User, Fornecedor, Categoria, Insumo, MovimentacaoEstoque
@@ -270,8 +272,6 @@ fredda-pizzaria/
 │   └── seed.ts                     # Dados iniciais
 ├── types/
 │   └── next-auth.d.ts              # Extensão de tipos (id, role na sessão)
-├── scripts/
-│   └── chat-local.ts               # npm run chat — testa o chatbot pelo terminal
 ├── middleware.ts                   # Proteção de rotas autenticadas
 ├── Caddyfile                       # Proxy HTTPS (perfil "https" do docker-compose)
 ├── docker-compose.yml
@@ -299,9 +299,10 @@ Receita              — id, nome, descricao, rendimento (Decimal), estoqueAtual
                        precoVenda (cardápio do chatbot), ativo
 ReceitaInsumo        — id, receitaId, insumoId, quantidade (Decimal); unique(receitaId,insumoId)
 OrdemProducao        — id, status (PLANEJADA|EM_ANDAMENTO|PAUSADA|CONCLUIDA|CANCELADA),
-                       quantidade, dataPrevista, observacoes, receitaId, usuarioId
-                       (ao criar, baixa os insumos; ao concluir, incrementa Receita.estoqueAtual;
-                        ao cancelar, estorna os insumos)
+                       dataPrevista, observacoes, usuarioId
+                       (ao criar, baixa os insumos disponíveis; ao concluir, incrementa o estoque
+                        de cada receita; ao cancelar, estorna os insumos baixados)
+OrdemReceita         — id, ordemId, receitaId, quantidade; unique(ordemId,receitaId)
 EtapaFermentacao     — id, nome (MISTURA|DESCANSO_INICIAL|FERMENTACAO_LONGA|MODELAGEM|CONGELAMENTO),
                        ordem, status (PENDENTE|EM_ANDAMENTO|PAUSADA|CONCLUIDA),
                        duracaoMinutos, minutosDecorridos, iniciadaEm, concluidaEm, ordemId
@@ -317,7 +318,8 @@ Pedido               — id (número do pedido), status (PENDENTE|CONFIRMADO|ENT
                        formaPagamento, dataEntregaDesejada, observacoes, valorTotal, clienteId, conversaId
 PedidoItem           — id, pedidoId, receitaId, quantidade, precoUnitario (preço do cardápio no momento)
 Conversa             — id, clienteId, status (BOT|HUMANO|ENCERRADA), historico (JSON com as mensagens
-                       no formato da API da Anthropic), ultimaMensagemEm
+                       no formato da API da Anthropic), estadoFluxo (JSON: etapa do menu e carrinho),
+                       ultimaMensagemEm
 MensagemWhatsApp     — id, waMessageId (único, evita reprocessar reenvios), direcao, texto, conversaId
 ```
 
@@ -358,7 +360,11 @@ MensagemWhatsApp     — id, waMessageId (único, evita reprocessar reenvios), d
 - [x] Exportação/importação de dados históricos em CSV
 - [x] Rebrand visual e responsividade mobile
 
-<<<<<<< Updated upstream
+### Entregas extras — pedidos pelo WhatsApp
+- [x] Correções de consistência: baixa de insumos pela ordem de produção, estoque atômico em vendas/saídas, alertas de estoque mínimo, permissões por perfil
+- [x] Edição (pago/entregue) e cancelamento de vendas com estorno
+- [x] Pedidos pelo WhatsApp: menu guiado com botões, IA (Claude Sonnet 5.5) como plano B, painel de pedidos, atendimento humano e simulador
+
 ### Sprint 5 — Modelagem de IA (semanas 9–10)
 - [ ] Coleta e preparação dos dados históricos de vendas
 - [ ] Análise exploratória e definição da abordagem (baseline vs. Prophet/SARIMA/XGBoost)
@@ -377,16 +383,6 @@ MensagemWhatsApp     — id, waMessageId (único, evita reprocessar reenvios), d
 - [ ] Pipeline CI/CD (GitHub Actions)
 - [ ] Deploy completo (app + IA) na VPS
 - [ ] Testes finais com o parceiro e documentação final
-=======
-### Sprint 5 — IA e entrega (semanas 9–10)
-- [x] Correções de consistência: baixa de insumos pela ordem de produção, estoque atômico em vendas/saídas, alertas de estoque mínimo, permissões por perfil
-- [x] Edição (pago/entregue) e cancelamento de vendas com estorno
-- [x] Chatbot de pedidos pelo WhatsApp (Claude Sonnet 5.5 + Meta Cloud API) com painel de pedidos e atendimento humano
-- [ ] Microservice Python com modelo preditivo
-- [ ] Sugestão de produção semanal
-- [ ] Testes finais com o parceiro
-- [ ] Documentação final
->>>>>>> Stashed changes
 
 ---
 

@@ -3,7 +3,7 @@ import { exigirSessao } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import { NomeEtapa, StatusOrdem } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library'
-import { baixarEstoqueInsumo, EstoqueInsuficienteError } from '@/lib/estoque'
+import { baixarEstoqueInsumoAteODisponivel } from '@/lib/estoque'
 
 const ETAPAS_PADRAO: { nome: NomeEtapa; ordem: number; duracaoMinutos: number }[] = [
   { nome: NomeEtapa.MISTURA,           ordem: 1, duracaoMinutos: 30   },
@@ -27,13 +27,8 @@ export async function GET(req: Request) {
 
   const ordens = await prisma.ordemProducao.findMany({
     where: {
-<<<<<<< Updated upstream
-      status: status ? (status as never) : { not: 'CANCELADA' },
-      receitas: receitaId ? { some: { receitaId } } : undefined,
-=======
       status: status ? (status as StatusOrdem) : { not: 'CANCELADA' },
-      receitaId: receitaId || undefined,
->>>>>>> Stashed changes
+      receitas: receitaId ? { some: { receitaId } } : undefined,
     },
     orderBy: { createdAt: 'desc' },
     include: {
@@ -98,69 +93,53 @@ export async function POST(req: Request) {
     }
   }
 
-<<<<<<< Updated upstream
-  const ordem = await prisma.ordemProducao.create({
-    data: {
-      usuarioId: session.user.id,
-      dataPrevista: dataPrevista ? new Date(dataPrevista) : null,
-      observacoes: observacoes?.trim() || null,
-      receitas: {
-        create: itens.map((i) => ({ receitaId: i.receitaId, quantidade: i.quantidade })),
+  // Consumo total de cada insumo, somando todas as receitas da ordem
+  const consumo = new Map<string, InstanceType<typeof Decimal>>()
+  for (const item of itens) {
+    const receita = receitasEncontradas.find((r) => r.id === item.receitaId)!
+    for (const ri of receita.insumos) {
+      const necessario = new Decimal(ri.quantidade).mul(item.quantidade)
+      consumo.set(ri.insumoId, (consumo.get(ri.insumoId) ?? new Decimal(0)).add(necessario))
+    }
+  }
+
+  const ordem = await prisma.$transaction(async (tx) => {
+    const criada = await tx.ordemProducao.create({
+      data: {
+        usuarioId: session.user.id,
+        dataPrevista: dataPrevista ? new Date(dataPrevista) : null,
+        observacoes: observacoes?.trim() || null,
+        receitas: {
+          create: itens.map((i) => ({ receitaId: i.receitaId, quantidade: i.quantidade })),
+        },
+        etapas: { create: ETAPAS_PADRAO },
       },
-      etapas: { create: ETAPAS_PADRAO },
-    },
-    include: {
-      receitas: { include: { receita: { select: { id: true, nome: true } } } },
-      usuario: { select: { nome: true } },
-      etapas: { orderBy: { ordem: 'asc' } },
-    },
+      include: {
+        receitas: { include: { receita: { select: { id: true, nome: true } } } },
+        usuario: { select: { nome: true } },
+        etapas: { orderBy: { ordem: 'asc' } },
+      },
+    })
+
+    // Baixa o que houver de cada insumo — estoque insuficiente não bloqueia a ordem, só gera aviso.
+    // O que foi baixado fica registrado na movimentação e é devolvido se a ordem for cancelada.
+    for (const [insumoId, necessario] of Array.from(consumo)) {
+      const baixado = await baixarEstoqueInsumoAteODisponivel(tx, insumoId, necessario)
+      if (baixado.lte(0)) continue
+      await tx.movimentacaoEstoque.create({
+        data: {
+          tipo: 'SAIDA',
+          quantidade: baixado,
+          motivo: `Ordem de produção ${criada.id.slice(-6).toUpperCase()}`,
+          insumoId,
+          usuarioId: session.user.id,
+          ordemId: criada.id,
+        },
+      })
+    }
+
+    return criada
   })
 
   return NextResponse.json({ ...ordem, insuficientes }, { status: 201 })
-=======
-  try {
-    const ordem = await prisma.$transaction(async (tx) => {
-      const criada = await tx.ordemProducao.create({
-        data: {
-          receitaId,
-          usuarioId: session.user.id,
-          quantidade: qtd,
-          dataPrevista: dataPrevista ? new Date(dataPrevista) : null,
-          observacoes: observacoes?.trim() || null,
-          etapas: { create: ETAPAS_PADRAO },
-        },
-        include: {
-          receita: { select: { id: true, nome: true } },
-          usuario: { select: { nome: true } },
-          etapas: { orderBy: { ordem: 'asc' } },
-        },
-      })
-
-      // Baixa dos insumos consumidos pela ordem (estornada se a ordem for cancelada)
-      for (const ri of receita.insumos) {
-        const necessario = new Decimal(ri.quantidade).mul(qtd)
-        await baixarEstoqueInsumo(tx, ri.insumoId, necessario)
-        await tx.movimentacaoEstoque.create({
-          data: {
-            tipo: 'SAIDA',
-            quantidade: necessario,
-            motivo: `Ordem de produção ${criada.id.slice(-6).toUpperCase()} — ${receita.nome}`,
-            insumoId: ri.insumoId,
-            usuarioId: session.user.id,
-            ordemId: criada.id,
-          },
-        })
-      }
-
-      return criada
-    })
-
-    return NextResponse.json(ordem, { status: 201 })
-  } catch (e) {
-    if (e instanceof EstoqueInsuficienteError) {
-      return NextResponse.json({ error: e.message }, { status: 422 })
-    }
-    throw e
-  }
->>>>>>> Stashed changes
 }

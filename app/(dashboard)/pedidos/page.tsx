@@ -54,9 +54,17 @@ export default function PedidosPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Pedidos</h1>
-        <p className="text-sm text-gray-500 mt-1">Pedidos feitos pelos clientes no WhatsApp (atualiza a cada 15s)</p>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Pedidos</h1>
+          <p className="text-sm text-gray-500 mt-1">Pedidos feitos pelos clientes no WhatsApp (atualiza a cada 15s)</p>
+        </div>
+        <Link
+          href="/pedidos/simulador"
+          className="text-sm text-brand-600 hover:text-brand-800 font-medium border border-brand-300 px-4 py-2 rounded-lg"
+        >
+          💬 Simular cliente
+        </Link>
       </div>
 
       {conversas.length > 0 && (

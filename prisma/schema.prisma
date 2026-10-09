@@ -193,16 +193,10 @@ model Receita {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-<<<<<<< Updated upstream
-  insumos ReceitaInsumo[]
-  ordens  OrdemReceita[]
-  vendas  Venda[]
-=======
   insumos     ReceitaInsumo[]
-  ordens      OrdemProducao[]
+  ordens      OrdemReceita[]
   vendas      Venda[]
   pedidoItens PedidoItem[]
->>>>>>> Stashed changes
 
   @@map("receitas")
 }
@@ -232,13 +226,9 @@ model OrdemProducao {
   usuarioId String
   usuario   User   @relation(fields: [usuarioId], references: [id])
 
-<<<<<<< Updated upstream
-  receitas OrdemReceita[]
-  etapas   EtapaFermentacao[]
-=======
+  receitas      OrdemReceita[]
   etapas        EtapaFermentacao[]
   movimentacoes MovimentacaoEstoque[]
->>>>>>> Stashed changes
 
   @@map("ordens_producao")
 }
@@ -376,6 +366,7 @@ model Conversa {
   id               String         @id @default(cuid())
   status           StatusConversa @default(BOT)
   historico        Json // mensagens no formato da API da Anthropic (só cresce, nunca é editado)
+  estadoFluxo      Json? // etapa do menu de pedidos e carrinho em montagem
   ultimaMensagemEm DateTime       @default(now())
   createdAt        DateTime       @default(now())
 
