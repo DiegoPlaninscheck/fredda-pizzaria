@@ -34,8 +34,28 @@ services:
       WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
       WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
       WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
+      # Microsserviço de previsão de demanda (rede interna do compose)
+      IA_URL: http://ia:8000
+      IA_API_KEY: ${IA_API_KEY:-}
     ports:
       - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Previsão de demanda (Python/FastAPI). Só é acessível pela rede interna do compose;
+  # o app chama em http://ia:8000 com o cabeçalho X-API-Key.
+  ia:
+    build:
+      context: ./ia
+      dockerfile: Dockerfile
+    container_name: fredda_ia
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: mysql://${MYSQL_USER:-fredda}:${MYSQL_PASSWORD:-fredda123}@db:3306/${MYSQL_DATABASE:-fredda_pizzaria}
+      IA_API_KEY: ${IA_API_KEY:-}
+    volumes:
+      - ia_modelos:/app/modelos
     depends_on:
       db:
         condition: service_healthy
@@ -61,5 +81,6 @@ services:
 
 volumes:
   mysql_data:
+  ia_modelos:
   caddy_data:
   caddy_config:

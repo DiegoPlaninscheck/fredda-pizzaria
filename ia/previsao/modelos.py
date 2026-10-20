@@ -33,23 +33,26 @@ class BaselineMediaMovel:
         return np.full(horizonte, media)
 
 
+# Hiperparâmetros padrão; a Sprint 6 os ajusta por validação temporal (avaliacao.ajustar)
+PARAMS_PADRAO = {
+    "learning_rate": 0.05,
+    "max_iter": 300,
+    "max_leaf_nodes": 15,
+    "min_samples_leaf": 10,
+    "l2_regularization": 1.0,
+}
+
+
 @dataclass
 class ModeloPrincipal:
+    params: dict = field(default_factory=lambda: dict(PARAMS_PADRAO))
     sabores: list[str] = field(default_factory=list)
     estimador: HistGradientBoostingRegressor | None = None
     nome: str = "hist_gradient_boosting_poisson"
 
-    @staticmethod
-    def novo_estimador(semente: int = 42) -> HistGradientBoostingRegressor:
-        return HistGradientBoostingRegressor(
-            loss="poisson",
-            learning_rate=0.05,
-            max_iter=300,
-            max_leaf_nodes=15,
-            min_samples_leaf=10,
-            l2_regularization=1.0,
-            random_state=semente,
-        )
+    def novo_estimador(self, semente: int = 42) -> HistGradientBoostingRegressor:
+        return HistGradientBoostingRegressor(loss="poisson", random_state=semente,
+                                             **{**PARAMS_PADRAO, **self.params})
 
     def treinar(self, series: pd.DataFrame) -> "ModeloPrincipal":
         self.sabores = sorted(series["sabor"].unique())

@@ -9,16 +9,14 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
-
 import joblib
 import pandas as pd
 
 from . import dados
 from .analise import gerar_relatorio
-from .avaliacao import validar
 from .config import DIR_DADOS, DIR_MODELOS, DIR_RELATORIOS
-from .modelos import BaselineMediaMovel, ModeloPrincipal, Previsor
+from .modelos import Previsor
+from .treino import treinar_previsor
 
 ARQ_VENDAS = DIR_DADOS / "vendas.csv"
 ARQ_SERIES = DIR_DADOS / "series_semanais.csv"
@@ -63,38 +61,26 @@ def cmd_analisar(args):
 
 def cmd_treinar(args):
     _, series = _ler_preparados()
-    try:
-        validacao = validar(series)
-    except ValueError as e:
-        print(f"Validação não executada: {e}")
-        validacao = None
-
-    principal = None
-    usar_principal = False
-    if validacao is not None:
-        principal = ModeloPrincipal().treinar(series)
-        usar_principal = validacao["principal_supera_baseline"]
-
-    previsor = Previsor(principal=principal, baseline=BaselineMediaMovel(),
-                        usar_principal=usar_principal)
-    previsor.metadados = {
-        "treinado_em": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "semanas": int(series["semana"].nunique()),
-        "ultima_semana": str(series["semana"].max().date()),
-        "sabores": sorted(series["sabor"].unique()),
-        "modelo_ativo": principal.nome if usar_principal else previsor.baseline.nome,
-        "validacao": validacao,
-    }
+    previsor, relatorio = treinar_previsor(series, iteracoes=args.iteracoes,
+                                           ajustar_params=not args.sem_ajuste)
     DIR_MODELOS.mkdir(parents=True, exist_ok=True)
     joblib.dump(previsor, ARQ_MODELO)
     ARQ_METADADOS.write_text(json.dumps(previsor.metadados, indent=2, ensure_ascii=False),
                              encoding="utf-8")
 
+    validacao = previsor.metadados["validacao"]
     if validacao:
-        b, p = validacao["baseline"], validacao["principal"]
+        DIR_RELATORIOS.mkdir(parents=True, exist_ok=True)
+        (DIR_RELATORIOS / "avaliacao.md").write_text(relatorio, encoding="utf-8")
         print(f"Validação (últimas {validacao['semanas_validacao']} semanas, 1 semana à frente):")
-        print(f"  baseline  MAE {b['mae']:.2f}  RMSE {b['rmse']:.2f}  WAPE {b['wape']:.1%}")
-        print(f"  principal MAE {p['mae']:.2f}  RMSE {p['rmse']:.2f}  WAPE {p['wape']:.1%}")
+        for nome in ("baseline", "principal"):
+            m = validacao[nome]
+            print(f"  {nome:<9} MAE {m['mae']:.2f}  RMSE {m['rmse']:.2f}  "
+                  f"MAPE {m['mape']:.1%}  WAPE {m['wape']:.1%}")
+        print(f"Hiperparâmetros: {validacao['params']}")
+        print(f"Relatório: {DIR_RELATORIOS / 'avaliacao.md'}")
+    else:
+        print("Histórico curto demais para validar: usando só o baseline.")
     print(f"Modelo ativo: {previsor.metadados['modelo_ativo']}")
     print(f"Salvo em {ARQ_MODELO}")
 
@@ -125,7 +111,9 @@ def main(argv=None):
     p.add_argument("--sem-graficos", action="store_true")
     p.set_defaults(func=cmd_analisar)
 
-    p = sub.add_parser("treinar", help="valida e treina baseline + modelo principal")
+    p = sub.add_parser("treinar", help="ajusta, valida e treina baseline + modelo principal")
+    p.add_argument("--iteracoes", type=int, default=20, help="combinações testadas no ajuste")
+    p.add_argument("--sem-ajuste", action="store_true", help="usa os hiperparâmetros padrão")
     p.set_defaults(func=cmd_treinar)
 
     p = sub.add_parser("prever", help="prevê as próximas semanas por sabor")

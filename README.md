@@ -51,7 +51,7 @@ O **Fredda Pizzaria** é um sistema dedicado que resolve esses pontos com:
 | **Processo produtivo** | Ordens de produção, timers de fermentação, condições ambientais | ✅ Concluído |
 | **Vendas e estoque de produto pronto** | Registro de vendas, baixa/reposição automática de estoque de pizzas, KPIs de faturamento | ✅ Concluído |
 | **Pedidos via WhatsApp (chatbot)** | Menu guiado com botões + IA (Claude Sonnet 5.5) como plano B; equipe confirma no painel | ✅ Concluído |
-| **Previsão de demanda** | Modelo preditivo (pasta [`ia/`](ia/README.md)), sugestão de produção | 🚧 Em andamento (modelo pronto, falta o microsserviço e a integração) |
+| **Previsão de demanda** | Modelo preditivo (pasta [`ia/`](ia/README.md)), sugestão de produção | 🚧 Em andamento (modelo e microsserviço prontos, falta a integração com o painel) |
 
 ---
 
@@ -188,7 +188,7 @@ Acesse em [http://localhost:3000](http://localhost:3000)
 docker compose up --build -d
 ```
 
-O `docker-entrypoint.sh` aplica as migrations (`prisma migrate deploy`) automaticamente antes de iniciar o servidor — não precisa rodar nada manualmente após o `up`. Para popular o banco com os dados de exemplo:
+O compose também sobe o microsserviço de previsão de demanda (`ia`), acessível só pela rede interna; defina `IA_API_KEY` no `.env` (veja [`ia/README.md`](ia/README.md#microsserviço-fastapi)). O `docker-entrypoint.sh` aplica as migrations (`prisma migrate deploy`) automaticamente antes de iniciar o servidor — não precisa rodar nada manualmente após o `up`. Para popular o banco com os dados de exemplo:
 
 ```bash
 docker compose exec app npm run db:seed
@@ -272,6 +272,7 @@ fredda-pizzaria/
 │   └── seed.ts                     # Dados iniciais
 ├── ia/                           # Previsão de demanda em Python (ver ia/README.md)
 │   ├── previsao/                 # Preparação, análise, modelos e CLI
+│   ├── servico/                  # Microsserviço FastAPI (/previsao, /treinar)
 │   └── tests/
 ├── types/
 │   └── next-auth.d.ts              # Extensão de tipos (id, role na sessão)
@@ -374,8 +375,8 @@ MensagemWhatsApp     — id, waMessageId (único, evita reprocessar reenvios), d
 - [x] Implementação do baseline (fallback) e treinamento do modelo principal — ver [`ia/README.md`](ia/README.md)
 
 ### Sprint 6 — Avaliação e microsserviço (semanas 11–12)
-- [ ] Ajuste de hiperparâmetros e avaliação (MAE/RMSE/MAPE)
-- [ ] Microsserviço FastAPI + scikit-learn com endpoint REST protegido por API key
+- [x] Ajuste de hiperparâmetros (busca aleatória com validação cruzada temporal) e avaliação (MAE/RMSE/MAPE/WAPE)
+- [x] Microsserviço FastAPI + scikit-learn com endpoint REST protegido por API key — ver [`ia/README.md`](ia/README.md#microsserviço-fastapi)
 
 ### Sprint 7 — Integração (semanas 13–14)
 - [ ] Integração do microsserviço com a aplicação principal
