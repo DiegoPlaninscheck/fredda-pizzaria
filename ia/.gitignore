@@ -1,0 +1,7 @@
+# Dados e artefatos gerados (podem conter dados de clientes)
+dados/
+modelos/
+relatorios/
+__pycache__/
+.pytest_cache/
+.venv/

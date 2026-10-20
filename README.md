@@ -51,7 +51,7 @@ O **Fredda Pizzaria** é um sistema dedicado que resolve esses pontos com:
 | **Processo produtivo** | Ordens de produção, timers de fermentação, condições ambientais | ✅ Concluído |
 | **Vendas e estoque de produto pronto** | Registro de vendas, baixa/reposição automática de estoque de pizzas, KPIs de faturamento | ✅ Concluído |
 | **Pedidos via WhatsApp (chatbot)** | Menu guiado com botões + IA (Claude Sonnet 5.5) como plano B; equipe confirma no painel | ✅ Concluído |
-| **Previsão de demanda** | Modelo preditivo, sugestão de produção | 📅 Planejado |
+| **Previsão de demanda** | Modelo preditivo (pasta [`ia/`](ia/README.md)), sugestão de produção | 🚧 Em andamento (modelo pronto, falta o microsserviço e a integração) |
 
 ---
 
@@ -270,6 +270,9 @@ fredda-pizzaria/
 │   ├── schema.prisma               # Models: User, Fornecedor, Categoria, Insumo, MovimentacaoEstoque
 │   ├── migrations/                 # Histórico de migrations
 │   └── seed.ts                     # Dados iniciais
+├── ia/                           # Previsão de demanda em Python (ver ia/README.md)
+│   ├── previsao/                 # Preparação, análise, modelos e CLI
+│   └── tests/
 ├── types/
 │   └── next-auth.d.ts              # Extensão de tipos (id, role na sessão)
 ├── middleware.ts                   # Proteção de rotas autenticadas
@@ -366,9 +369,9 @@ MensagemWhatsApp     — id, waMessageId (único, evita reprocessar reenvios), d
 - [x] Pedidos pelo WhatsApp: menu guiado com botões, IA (Claude Sonnet 5.5) como plano B, painel de pedidos, atendimento humano e simulador
 
 ### Sprint 5 — Modelagem de IA (semanas 9–10)
-- [ ] Coleta e preparação dos dados históricos de vendas
-- [ ] Análise exploratória e definição da abordagem (baseline vs. Prophet/SARIMA/XGBoost)
-- [ ] Implementação do baseline (fallback) e treinamento do modelo principal
+- [x] Coleta e preparação dos dados históricos de vendas (MySQL ou CSV exportado → séries semanais por sabor)
+- [x] Análise exploratória e definição da abordagem (gradient boosting global; SARIMA/Prophet reavaliados com 2+ anos de dados)
+- [x] Implementação do baseline (fallback) e treinamento do modelo principal — ver [`ia/README.md`](ia/README.md)
 
 ### Sprint 6 — Avaliação e microsserviço (semanas 11–12)
 - [ ] Ajuste de hiperparâmetros e avaliação (MAE/RMSE/MAPE)
