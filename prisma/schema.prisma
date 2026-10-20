@@ -97,6 +97,7 @@ model User {
   movimentacoes MovimentacaoEstoque[]
   ordens        OrdemProducao[]
   vendas        Venda[]
+  planos        PlanoProducao[]
 
   @@map("users")
 }
@@ -197,6 +198,7 @@ model Receita {
   ordens      OrdemReceita[]
   vendas      Venda[]
   pedidoItens PedidoItem[]
+  planoItens  PlanoProducaoItem[]
 
   @@map("receitas")
 }
@@ -391,4 +393,43 @@ model MensagemWhatsApp {
   conversa   Conversa @relation(fields: [conversaId], references: [id], onDelete: Cascade)
 
   @@map("mensagens_whatsapp")
+}
+
+// ─── Planejamento de produção (previsão de demanda) ──────────────────────────
+
+// Plano de uma semana (segunda a domingo), gerado a partir da previsão do microsserviço de IA
+model PlanoProducao {
+  id          String   @id @default(cuid())
+  semana      DateTime @unique @db.Date // segunda-feira da semana planejada
+  modeloAtivo String? // modelo que gerou a previsão (ou null se o plano foi manual)
+  observacoes String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  usuarioId String
+  usuario   User   @relation(fields: [usuarioId], references: [id])
+
+  itens PlanoProducaoItem[]
+
+  @@map("planos_producao")
+}
+
+model PlanoProducaoItem {
+  id             String   @id @default(cuid())
+  previsao       Decimal? @db.Decimal(10, 2) // demanda prevista pela IA (unidades)
+  limiteInferior Decimal? @db.Decimal(10, 2)
+  limiteSuperior Decimal? @db.Decimal(10, 2)
+  metodo         String?
+  estoqueInicial Decimal  @db.Decimal(10, 3) // estoque de produto pronto quando o plano foi salvo
+  sugerido       Decimal  @db.Decimal(10, 3)
+  planejado      Decimal  @db.Decimal(10, 3)
+
+  planoId String
+  plano   PlanoProducao @relation(fields: [planoId], references: [id], onDelete: Cascade)
+
+  receitaId String
+  receita   Receita @relation(fields: [receitaId], references: [id])
+
+  @@unique([planoId, receitaId])
+  @@map("plano_producao_itens")
 }

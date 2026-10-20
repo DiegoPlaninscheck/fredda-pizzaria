@@ -53,7 +53,17 @@ def test_previsao_com_vendas_no_corpo(cliente, vendas):
     corpo = r.json()
     assert {p["sabor"] for p in corpo["previsoes"]} == {"Calabresa", "Margherita"}
     assert len(corpo["previsoes"]) == 4
-    assert all(p["previsao"] >= 0 for p in corpo["previsoes"])
+    assert all(p["limite_inferior"] <= p["previsao"] <= p["limite_superior"] for p in corpo["previsoes"])
+    assert corpo["nivel_confianca"] == 0.8
+
+
+def test_previsao_ate_uma_data(cliente, vendas):
+    ate = (vendas["data"].min() + pd.Timedelta(weeks=10)).date()
+    r = cliente.post("/previsao", headers={"X-API-Key": CHAVE},
+                     json=_corpo(vendas, ate=ate.isoformat()))
+    assert r.status_code == 200, r.text
+    ultima = pd.Timestamp(r.json()["ultima_semana_historico"])
+    assert ultima <= pd.Timestamp(ate) < ultima + pd.Timedelta(weeks=1)
 
 
 def test_validacao_do_pedido(cliente):
@@ -87,6 +97,8 @@ def test_ajuste_escolhe_params_e_relatorio_tem_mape():
     assert previsor.metadados["ajuste_iteracoes"] == 3
     assert "MAPE" in relatorio
     assert previsor.metadados["validacao"]["principal"]["mape"] >= 0
+    z = previsor.intervalos["hist_gradient_boosting_poisson"]
+    assert z["z_inf"] < 0 < z["z_sup"]
 
 
 def test_historico_curto_fica_so_no_baseline():

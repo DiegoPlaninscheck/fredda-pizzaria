@@ -20,7 +20,7 @@ import os
 import secrets
 import threading
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 import joblib
@@ -91,6 +91,10 @@ class VendaEntrada(BaseModel):
 
 class PedidoPrevisao(BaseModel):
     semanas: int = Field(1, ge=1, le=MAX_SEMANAS)
+    ate: date | None = Field(
+        None, description="Último dia do histórico considerado; a semana que o contém entra "
+                          "inteira e semanas sem venda até ela contam como zero. Padrão: última "
+                          "semana completa com venda.")
     sabores: list[str] | None = Field(None, description="Filtra os sabores; todos se vazio.")
     vendas: list[VendaEntrada] | None = Field(
         None, description="Histórico de vendas; se ausente, lê do banco (DATABASE_URL).")
@@ -100,11 +104,14 @@ class ItemPrevisao(BaseModel):
     semana: str
     sabor: str
     previsao: float
+    limite_inferior: float
+    limite_superior: float
     metodo: str
 
 
 class RespostaPrevisao(BaseModel):
     modelo_ativo: str
+    nivel_confianca: float
     treinado_em: str | None
     ultima_semana_historico: str | None
     previsoes: list[ItemPrevisao]
@@ -116,7 +123,7 @@ class PedidoTreino(BaseModel):
 
 # ─── Rotas ───────────────────────────────────────────────────────────────────
 
-def _series(vendas: list[VendaEntrada] | None) -> pd.DataFrame:
+def _series(vendas: list[VendaEntrada] | None, ate: date | None = None) -> pd.DataFrame:
     if vendas is not None:
         df = dados.normalizar_vendas(pd.DataFrame([v.model_dump() for v in vendas]))
     else:
@@ -125,7 +132,9 @@ def _series(vendas: list[VendaEntrada] | None) -> pd.DataFrame:
         except Exception as e:  # banco fora do ar ou DATABASE_URL ausente
             log.exception("Falha ao ler vendas do banco")
             raise HTTPException(503, f"Não foi possível ler as vendas do banco: {e.__class__.__name__}")
-    return dados.series_semanais(df)
+    if ate is not None:
+        df = df[df["data"] < pd.Timestamp(ate) + pd.Timedelta(days=1)]
+    return dados.series_semanais(df, ate=pd.Timestamp(ate) if ate else None)
 
 
 @app.get("/saude")
@@ -142,18 +151,20 @@ def modelo():
 
 @app.post("/previsao", response_model=RespostaPrevisao, dependencies=[Depends(exigir_chave)])
 def previsao(pedido: PedidoPrevisao):
-    series = _series(pedido.vendas)
+    series = _series(pedido.vendas, pedido.ate)
     if pedido.sabores:
         series = series[series["sabor"].isin(pedido.sabores)]
     previsor = estado.previsor
     resultado = previsor.prever(series, horizonte=pedido.semanas) if not series.empty else pd.DataFrame()
     itens = [] if resultado.empty else [
-        ItemPrevisao(semana=r.semana.date().isoformat(), sabor=r.sabor,
-                     previsao=r.previsao, metodo=r.metodo)
+        ItemPrevisao(semana=r.semana.date().isoformat(), sabor=r.sabor, previsao=r.previsao,
+                     limite_inferior=r.limite_inferior, limite_superior=r.limite_superior,
+                     metodo=r.metodo)
         for r in resultado.itertuples()
     ]
     return RespostaPrevisao(
         modelo_ativo=previsor.metadados.get("modelo_ativo", ""),
+        nivel_confianca=getattr(previsor, "nivel_intervalo", 0.8),
         treinado_em=previsor.metadados.get("treinado_em"),
         ultima_semana_historico=None if series.empty else series["semana"].max().date().isoformat(),
         previsoes=itens,

@@ -2,7 +2,7 @@
 
 Módulo Python que prevê quantas pizzas de cada sabor serão vendidas nas próximas semanas,
 a partir do histórico de vendas do sistema. Roda pela linha de comando (preparação, análise
-e treino) e como microsserviço FastAPI (Sprint 6). A integração com o painel vem na Sprint 7.
+e treino) e como microsserviço FastAPI (Sprint 6), usado pela tela de Planejamento do app (Sprint 7).
 
 ## Instalação
 
@@ -90,6 +90,12 @@ principal MAE 2.86  RMSE 3.53  MAPE 49.3%  WAPE 28.9%
 Esses números servem só para validar o código: a avaliação real depende do histórico de
 vendas da pizzaria.
 
+**Intervalo de previsão** (Sprint 7): cada previsão vem com uma faixa de 80%. A largura é
+`z × raiz(previsão) × raiz(semanas à frente)`, porque o erro de contagens cresce com a raiz do
+volume e com a distância da previsão. Os valores de `z` são os quantis 10% e 90% dos erros
+padronizados do método no holdout; sem validação (histórico curto), usa ±1,28 (aproximação
+de Poisson).
+
 ## Microsserviço (FastAPI)
 
 ```bash
@@ -102,10 +108,12 @@ uvicorn servico.app:app --port 8000      # documentação interativa em /docs
 |------|--------------|-----------|
 | `GET /saude` | não | Status e modelo ativo (usado pelo healthcheck do Docker) |
 | `GET /modelo` | `X-API-Key` | Metadados: data do treino, sabores, hiperparâmetros e métricas de validação |
-| `POST /previsao` | `X-API-Key` | Previsão por sabor. Corpo: `{"semanas": 1-8, "sabores": [...]?, "vendas": [...]?}` |
+| `POST /previsao` | `X-API-Key` | Previsão por sabor com intervalo de 80%. Corpo: `{"semanas": 1-8, "ate": "AAAA-MM-DD"?, "sabores": [...]?, "vendas": [...]?}` |
 | `POST /treinar` | `X-API-Key` | Retreina com as vendas do banco e passa a usar o novo modelo. Corpo: `{"iteracoes": 20}` |
 
 - Sem `vendas` no corpo, `/previsao` lê o histórico direto do MySQL (`DATABASE_URL`).
+- `ate` corta o histórico nesse dia: a semana que o contém entra inteira e semanas sem venda até ela contam como zero. O app manda o domingo da última semana completa, e `semanas` conta a partir da semana seguinte.
+- As datas do banco (UTC) são convertidas para o horário de Brasília antes de agrupar por semana.
 - A chave é comparada em tempo constante. Sem `IA_API_KEY` configurada, as rotas protegidas
   respondem 503 (o serviço nunca fica aberto por esquecimento).
 - Sem modelo salvo (primeira subida), o serviço responde só com o baseline até o primeiro `/treinar`.
@@ -122,10 +130,12 @@ curl -X POST http://localhost:8000/previsao \
 ```json
 {
   "modelo_ativo": "hist_gradient_boosting_poisson",
+  "nivel_confianca": 0.8,
   "treinado_em": "2026-10-20T10:11:25+00:00",
   "ultima_semana_historico": "2025-12-22",
   "previsoes": [
-    {"semana": "2025-12-29", "sabor": "Calabresa", "previsao": 12.6, "metodo": "hist_gradient_boosting_poisson"}
+    {"semana": "2025-12-29", "sabor": "Calabresa", "previsao": 12.6,
+     "limite_inferior": 7.9, "limite_superior": 17.8, "metodo": "hist_gradient_boosting_poisson"}
   ]
 }
 ```

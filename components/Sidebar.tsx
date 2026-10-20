@@ -30,6 +30,7 @@ export default function Sidebar() {
     { href: '/pedidos', label: 'Pedidos', badge: pedidosAguardando > 0 ? pedidosAguardando : undefined },
     { href: '/vendas', label: 'Vendas' },
     { href: '/producao', label: 'Produção' },
+    { href: '/planejamento', label: 'Planejamento' },
     { href: '/receitas', label: 'Receitas' },
     { href: '/estoque', label: 'Estoque', badge: alertas > 0 ? alertas : undefined },
     { href: '/fornecedores', label: 'Fornecedores' },

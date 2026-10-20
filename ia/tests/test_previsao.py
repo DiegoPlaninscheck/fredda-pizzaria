@@ -74,3 +74,28 @@ def test_sabor_novo_usa_baseline(series):
     linha = previsao[previsao["sabor"] == "Sabor Novo"].iloc[0]
     assert linha["metodo"] == BaselineMediaMovel.nome
     assert linha["previsao"] == 4.0
+
+
+def test_intervalo_contem_a_previsao_e_alarga_com_o_horizonte(series):
+    previsor = Previsor(principal=ModeloPrincipal().treinar(series))
+    p = previsor.prever(series[series["sabor"] == "Calabresa"], horizonte=3)
+    assert (p["limite_inferior"] <= p["previsao"]).all()
+    assert (p["previsao"] <= p["limite_superior"]).all()
+    larguras = (p["limite_superior"] - p["limite_inferior"]).to_numpy()
+    assert larguras[2] > larguras[0]
+
+
+def test_datas_utc_do_banco_viram_horario_local():
+    # domingo 23h em São Paulo = segunda 02h UTC; a venda deve cair na semana do domingo
+    vendas = dados.normalizar_vendas(pd.DataFrame({
+        "data": pd.to_datetime(["2025-01-13 02:00"]).tz_localize("UTC"),
+        "sabor": ["Calabresa"], "quantidade": [1],
+    }))
+    assert vendas["data"].iloc[0] == pd.Timestamp("2025-01-12 23:00")
+
+
+def test_series_ate_preenche_semanas_sem_venda():
+    vendas = dados.normalizar_vendas(pd.DataFrame({
+        "data": ["2025-01-06"], "sabor": ["Calabresa"], "quantidade": [2]}))
+    series = dados.series_semanais(vendas, ate=pd.Timestamp("2025-01-26"))
+    assert list(series["quantidade"]) == [2, 0, 0]

@@ -35,7 +35,8 @@ def treinar_previsor(series: pd.DataFrame, iteracoes: int = 20,
         usar_principal = validacao["principal_supera_baseline"]
 
     previsor = Previsor(principal=principal, baseline=BaselineMediaMovel(),
-                        usar_principal=usar_principal)
+                        usar_principal=usar_principal,
+                        intervalos=validacao["intervalos"] if validacao else {})
     previsor.metadados = {
         "treinado_em": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "semanas": int(series["semana"].nunique()) if not series.empty else 0,

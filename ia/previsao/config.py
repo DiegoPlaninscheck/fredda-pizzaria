@@ -27,3 +27,10 @@ DOBRAS_AJUSTE = 6
 MIN_DOBRAS_AJUSTE = 2
 SEMANAS_DOBRA = 4
 MIN_SEMANAS_TREINO_DOBRA = 26
+
+# Fuso da pizzaria: o banco guarda as datas em UTC e as semanas são contadas no horário local
+FUSO = "America/Sao_Paulo"
+
+# Nível do intervalo de previsão (80%: 10% de chance de vender abaixo do limite inferior
+# e 10% acima do superior)
+NIVEL_INTERVALO = 0.8

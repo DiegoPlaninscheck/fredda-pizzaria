@@ -51,7 +51,7 @@ O **Fredda Pizzaria** é um sistema dedicado que resolve esses pontos com:
 | **Processo produtivo** | Ordens de produção, timers de fermentação, condições ambientais | ✅ Concluído |
 | **Vendas e estoque de produto pronto** | Registro de vendas, baixa/reposição automática de estoque de pizzas, KPIs de faturamento | ✅ Concluído |
 | **Pedidos via WhatsApp (chatbot)** | Menu guiado com botões + IA (Claude Sonnet 5.5) como plano B; equipe confirma no painel | ✅ Concluído |
-| **Previsão de demanda** | Modelo preditivo (pasta [`ia/`](ia/README.md)), sugestão de produção | 🚧 Em andamento (modelo e microsserviço prontos, falta a integração com o painel) |
+| **Previsão de demanda e planejamento** | Modelo preditivo (pasta [`ia/`](ia/README.md)), sugestão de produção semanal com intervalo de confiança, planejado x realizado | ✅ Concluído |
 
 ---
 
@@ -99,6 +99,28 @@ Em **Pedidos → 💬 Simular cliente** (`/pedidos/simulador`) há uma tela que 
 **Limitações conhecidas:**
 - Pela regra do WhatsApp, mensagens livres (avisos de status, respostas da equipe) só podem ser enviadas até 24h depois da última mensagem do cliente. Fora dessa janela o aviso não é enviado e o painel informa. Enviar *templates* aprovados pela Meta fica para uma próxima etapa.
 - A fila que ordena as mensagens de cada cliente fica em memória, o que funciona com uma única instância do app (o cenário da VPS).
+
+---
+
+## 📈 Planejamento de produção (previsão de demanda)
+
+Em **Planejamento** (`/planejamento`) a equipe escolhe uma semana (da próxima até 7 semanas à frente) e o sistema sugere quantas pizzas de cada sabor produzir:
+
+```
+Painel → GET /api/planejamento/sugestao?semana=AAAA-MM-DD
+  → microsserviço ia (POST /previsao, X-API-Key) → previsão por sabor + intervalo de 80%
+  → estoque projetado = estoque atual + ordens em andamento − demanda prevista até a semana
+  → sugerido = previsão − estoque projetado (ou limite superior − estoque, na opção "Limite superior")
+```
+
+- **Previsão de venda** mostra o valor previsto e a faixa de 80% (em 8 de cada 10 semanas a venda deve ficar dentro dela). A opção **Limite superior** planeja pela ponta de cima da faixa, para reduzir o risco de faltar massa.
+- A coluna **Planejado** começa com a sugestão e pode ser ajustada. **Salvar plano** guarda a semana (previsão, faixa, estoque e quantidades) e **Criar ordem de produção** gera a ordem com as quantidades planejadas.
+- Se o microsserviço estiver fora do ar ou sem histórico, a tela avisa e o plano pode ser feito à mão.
+- Administradores têm o botão **Retreinar modelo**, que treina de novo com as vendas mais recentes.
+
+**Planejado x realizado** (`/planejamento/comparacao`) compara, para cada semana com plano salvo, a previsão e o planejado com a produção (ordens concluídas na semana) e as vendas. Os indicadores mostram o erro médio da previsão, a porcentagem de vendas dentro da faixa prevista e quanto do planejado foi produzido. As semanas vão de segunda a domingo no horário de Brasília.
+
+Configuração: `IA_URL` e `IA_API_KEY` no `.env` (no Docker, o `IA_URL` já aponta para o serviço `ia`).
 
 ---
 
@@ -222,6 +244,8 @@ fredda-pizzaria/
 │   │   │   ├── simulador/          # Simulador do WhatsApp para testar o atendimento
 │   │   │   ├── [id]/               # Detalhe do pedido + conversa + confirmar/entregar/cancelar
 │   │   │   └── conversas/[id]/     # Conversa: responder o cliente, assumir/devolver ao bot
+│   │   ├── planejamento/           # Sugestão de produção semanal (previsão + intervalo)
+│   │   │   └── comparacao/         # Planejado x realizado
 │   │   ├── producao/               # Painel de ordens de produção
 │   │   │   ├── nova/               # Criar nova ordem com verificação de estoque
 │   │   │   └── [id]/               # Detalhe da ordem + timers de fermentação
@@ -248,6 +272,7 @@ fredda-pizzaria/
 │   │   ├── conversas/              # Conversas com atendente, resposta manual, assumir/devolver
 │   │   ├── whatsapp/webhook/       # Webhook da Meta (verificação + mensagens recebidas)
 │   │   ├── chatbot/simulador/      # Atendimento simulado (telefones 000…, sem envio à Meta)
+│   │   ├── planejamento/           # GET/PUT do plano da semana; sugestao/, comparacao/, modelo/ (retreino, ADMIN)
 │   │   └── ordens/                 # GET, POST, PATCH (conclusão repõe estoque de produto pronto)
 │   │       └── [id]/etapas/[etapaId]/
 │   │           └── condicoes/      # Registro de temperatura, umidade, observações
@@ -261,6 +286,9 @@ fredda-pizzaria/
 │   ├── api-auth.ts                 # exigirSessao(role?) usado em todas as rotas de API
 │   ├── estoque.ts                  # Baixa atômica de estoque (sem estoque negativo em acessos simultâneos)
 │   ├── ordens.ts                   # Concluir/cancelar ordem (reposição e estorno de insumos)
+│   ├── ia.ts                       # Cliente do microsserviço de previsão (IA_URL + X-API-Key)
+│   ├── planejamento.ts             # Sugestão de produção e planejado x realizado
+│   ├── semanas.ts                  # Semanas de segunda a domingo no horário de Brasília
 │   ├── pedidos.ts                  # Criar/confirmar/entregar/cancelar pedidos
 │   ├── whatsapp.ts                 # Envio, assinatura do webhook e fila por cliente
 │   ├── chatbot/                    # Atendimento: fluxo guiado (fluxo.ts), IA plano B (agente.ts),
@@ -325,6 +353,9 @@ Conversa             — id, clienteId, status (BOT|HUMANO|ENCERRADA), historico
                        no formato da API da Anthropic), estadoFluxo (JSON: etapa do menu e carrinho),
                        ultimaMensagemEm
 MensagemWhatsApp     — id, waMessageId (único, evita reprocessar reenvios), direcao, texto, conversaId
+PlanoProducao        — id, semana (segunda-feira, única), modeloAtivo, observacoes, usuarioId
+PlanoProducaoItem    — id, planoId, receitaId, previsao, limiteInferior, limiteSuperior, metodo,
+                       estoqueInicial (projetado), sugerido, planejado
 ```
 
 > **Atenção:** após clonar o repositório, execute `npx prisma migrate dev` para aplicar todas as migrations.
@@ -379,9 +410,9 @@ MensagemWhatsApp     — id, waMessageId (único, evita reprocessar reenvios), d
 - [x] Microsserviço FastAPI + scikit-learn com endpoint REST protegido por API key — ver [`ia/README.md`](ia/README.md#microsserviço-fastapi)
 
 ### Sprint 7 — Integração (semanas 13–14)
-- [ ] Integração do microsserviço com a aplicação principal
-- [ ] Sugestão de produção semanal com intervalo de confiança
-- [ ] Tela de comparação planejado x realizado
+- [x] Integração do microsserviço com a aplicação principal
+- [x] Sugestão de produção semanal com intervalo de confiança
+- [x] Tela de comparação planejado x realizado
 
 ### Sprint 8 — Deploy e validação (semanas 15–16)
 - [ ] Pipeline CI/CD (GitHub Actions)

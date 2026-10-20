@@ -14,10 +14,30 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import HistGradientBoostingRegressor
 
-from .config import MIN_SEMANAS_MODELO
+from .config import MIN_SEMANAS_MODELO, NIVEL_INTERVALO
 from .features import adicionar_features, matriz
 
 JANELA_BASELINE = 4
+
+# Quantis da normal padrão para o intervalo de 80%, usados quando não há validação para
+# calibrar (aproximação de Poisson: desvio ≈ raiz da média)
+Z_PADRAO = {"z_inf": -1.2816, "z_sup": 1.2816}
+
+
+def escala_residuo(previsao):
+    """Escala dos erros de contagens: cresce com a raiz da previsão (mínimo 1)."""
+    return np.sqrt(np.maximum(np.asarray(previsao, dtype=float), 1.0))
+
+
+def intervalo(previsao: float, passo: int, z: dict) -> tuple[float, float]:
+    """Intervalo de previsão a partir dos quantis dos resíduos padronizados.
+
+    O erro de previsões mais distantes cresce com a raiz do número de semanas à frente.
+    """
+    escala = float(escala_residuo(previsao)) * np.sqrt(passo)
+    inferior = max(0.0, previsao + z["z_inf"] * escala)
+    superior = max(inferior, previsao + z["z_sup"] * escala)
+    return round(inferior, 2), round(superior, 2)
 
 
 class BaselineMediaMovel:
@@ -91,6 +111,9 @@ class Previsor:
     usar_principal: bool = True
     min_semanas: int = MIN_SEMANAS_MODELO
     metadados: dict = field(default_factory=dict)
+    # Quantis dos resíduos padronizados por método, calibrados na validação (ver treino.py)
+    intervalos: dict = field(default_factory=dict)
+    nivel_intervalo: float = NIVEL_INTERVALO
 
     def metodo_para(self, historico: pd.DataFrame) -> str:
         sabor = historico["sabor"].iloc[0]
@@ -108,12 +131,16 @@ class Previsor:
                 valores = self.baseline.prever_serie(hist["quantidade"], horizonte)
             else:
                 valores = self.principal.prever_serie(hist, horizonte)
+            z = getattr(self, "intervalos", {}).get(metodo, Z_PADRAO)
             ultima = hist["semana"].max()
             for i, v in enumerate(valores, start=1):
+                inferior, superior = intervalo(float(v), i, z)
                 linhas.append({
                     "semana": ultima + pd.Timedelta(weeks=i),
                     "sabor": sabor,
                     "previsao": round(float(v), 2),
+                    "limite_inferior": inferior,
+                    "limite_superior": superior,
                     "metodo": metodo,
                 })
         return pd.DataFrame(linhas)

@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .config import FREQ_SEMANAL
+from .config import FREQ_SEMANAL, FUSO
 
 COLUNAS_VENDAS = ["data", "sabor", "quantidade"]
 
@@ -42,6 +42,8 @@ def carregar_vendas_banco(database_url: str | None = None) -> pd.DataFrame:
     engine = create_engine(_url_sqlalchemy(database_url))
     with engine.connect() as conn:
         df = pd.read_sql(CONSULTA_VENDAS, conn)
+    # O Prisma grava DateTime em UTC; as semanas são contadas no horário da pizzaria
+    df["data"] = pd.to_datetime(df["data"]).dt.tz_localize("UTC")
     return normalizar_vendas(df)
 
 
@@ -63,7 +65,9 @@ def carregar_vendas_csv(caminho: str | Path) -> pd.DataFrame:
 
 def normalizar_vendas(df: pd.DataFrame) -> pd.DataFrame:
     df = df[COLUNAS_VENDAS].copy()
-    df["data"] = pd.to_datetime(df["data"])
+    df["data"] = pd.to_datetime(df["data"], utc=False)
+    if df["data"].dt.tz is not None:
+        df["data"] = df["data"].dt.tz_convert(FUSO).dt.tz_localize(None)
     df["sabor"] = df["sabor"].astype(str).str.strip()
     df["quantidade"] = pd.to_numeric(df["quantidade"], errors="coerce")
     df = df.dropna(subset=["data", "quantidade"])

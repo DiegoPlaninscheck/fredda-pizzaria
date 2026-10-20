@@ -22,7 +22,8 @@ import pandas as pd
 from .config import (DOBRAS_AJUSTE, MIN_DOBRAS_AJUSTE, MIN_SEMANAS_TREINO_DOBRA, SEMANAS_DOBRA,
                      SEMANAS_VALIDACAO)
 from .features import adicionar_features
-from .modelos import JANELA_BASELINE, PARAMS_PADRAO, ModeloPrincipal
+from .config import NIVEL_INTERVALO
+from .modelos import JANELA_BASELINE, PARAMS_PADRAO, BaselineMediaMovel, ModeloPrincipal, escala_residuo
 
 # Espaço de busca dos hiperparâmetros do HistGradientBoostingRegressor
 GRADE_PARAMS = {
@@ -152,7 +153,25 @@ def validar(series: pd.DataFrame, params: dict | None = None,
         }
     resultado["principal_supera_baseline"] = (
         resultado["principal"]["mae"] < resultado["baseline"]["mae"])
+    resultado["intervalos"] = {
+        BaselineMediaMovel.nome: quantis_residuos(teste["quantidade"], teste["baseline"]),
+        ModeloPrincipal.nome: quantis_residuos(teste["quantidade"], teste["principal"]),
+    }
     return resultado
+
+
+def quantis_residuos(real, previsto, nivel: float = NIVEL_INTERVALO) -> dict:
+    """Quantis dos resíduos padronizados ((real - previsto) / raiz(previsto)).
+
+    Calibrados no holdout, definem a largura do intervalo de previsão. A cobertura
+    informada é a do próprio holdout (otimista, já que os quantis vêm dessas semanas).
+    """
+    real = np.asarray(real, dtype=float)
+    previsto = np.asarray(previsto, dtype=float)
+    z = (real - previsto) / escala_residuo(previsto)
+    alfa = (1 - nivel) / 2
+    z_inf, z_sup = float(np.quantile(z, alfa)), float(np.quantile(z, 1 - alfa))
+    return {"z_inf": round(z_inf, 4), "z_sup": round(z_sup, 4), "nivel": nivel}
 
 
 def relatorio_markdown(validacao: dict, ajuste: dict | None) -> str:
@@ -199,5 +218,11 @@ def relatorio_markdown(validacao: dict, ajuste: dict | None) -> str:
             p = r["params"]
             partes.append(f"| {i} | {r['mae']:.2f} | {p['learning_rate']} | {p['max_iter']} | "
                           f"{p['max_leaf_nodes']} | {p['min_samples_leaf']} | {p['l2_regularization']} |")
+    partes += ["", "## Intervalo de previsão", "",
+               f"Intervalo de {NIVEL_INTERVALO:.0%}: previsão + z × raiz(previsão) × raiz(semanas à frente), "
+               "com z = quantis dos resíduos padronizados no holdout.", "",
+               "| Método | z inferior | z superior |", "|---|---|---|"]
+    for metodo, z in validacao.get("intervalos", {}).items():
+        partes.append(f"| {metodo} | {z['z_inf']:.2f} | {z['z_sup']:.2f} |")
     partes += ["", "MAPE considera só as semanas com venda; WAPE = erro absoluto total / volume vendido.", ""]
     return "\n".join(partes)
