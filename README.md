@@ -96,6 +96,16 @@ Em **Pedidos → 💬 Simular cliente** (`/pedidos/simulador`) há uma tela que 
    - **Em desenvolvimento:** `cloudflared tunnel --url http://localhost:3000` (ou ngrok) gera uma URL HTTPS temporária.
 4. Em WhatsApp → Configuração, cadastre a URL `https://<domínio>/api/whatsapp/webhook` com o mesmo `WHATSAPP_VERIFY_TOKEN` e assine o campo **messages**.
 
+### Alternativa: WhatsApp Sandbox da Twilio
+
+Para responder clientes pela Meta, a conta precisa da **verificação da empresa** (CNPJ). Sem ela, dá para demonstrar o bot com o Sandbox da Twilio, que funciona na conta trial.
+
+1. No console da Twilio (versão *legacy*), abra **Messaging → Try it out → Send a WhatsApp message**. Cada celular que for testar envia `join <código do sandbox>` para o número do Sandbox (a inscrição vale por 3 dias).
+2. No `.env`: `WHATSAPP_PROVEDOR="twilio"`, `TWILIO_ACCOUNT_SID` e `TWILIO_AUTH_TOKEN` (em *Account Info*, na página inicial do console).
+3. Em **Sandbox settings → When a message comes in**, cadastre `https://<domínio>/api/whatsapp/twilio` (método POST).
+
+O webhook (`/api/whatsapp/twilio`) valida a assinatura `X-Twilio-Signature` e passa pelo mesmo atendimento. Como mensagens livres na Twilio não têm botões nem listas, as opções vão numeradas (1️⃣ 2️⃣ 3️⃣…) e o cliente responde com o número ou com o nome da opção.
+
 **Limitações conhecidas:**
 - Pela regra do WhatsApp, mensagens livres (avisos de status, respostas da equipe) só podem ser enviadas até 24h depois da última mensagem do cliente. Fora dessa janela o aviso não é enviado e o painel informa. Enviar *templates* aprovados pela Meta fica para uma próxima etapa.
 - A fila que ordena as mensagens de cada cliente fica em memória, o que funciona com uma única instância do app (o cenário da VPS).
@@ -271,6 +281,7 @@ fredda-pizzaria/
 │   │   │   └── [id]/               # GET, PATCH (confirmar/entregar/cancelar + aviso no WhatsApp)
 │   │   ├── conversas/              # Conversas com atendente, resposta manual, assumir/devolver
 │   │   ├── whatsapp/webhook/       # Webhook da Meta (verificação + mensagens recebidas)
+│   │   ├── whatsapp/twilio/        # Webhook da Twilio (Sandbox do WhatsApp)
 │   │   ├── chatbot/simulador/      # Atendimento simulado (telefones 000…, sem envio à Meta)
 │   │   ├── planejamento/           # GET/PUT do plano da semana; sugestao/, comparacao/, modelo/ (retreino, ADMIN)
 │   │   └── ordens/                 # GET, POST, PATCH (conclusão repõe estoque de produto pronto)
@@ -291,6 +302,7 @@ fredda-pizzaria/
 │   ├── semanas.ts                  # Semanas de segunda a domingo no horário de Brasília
 │   ├── pedidos.ts                  # Criar/confirmar/entregar/cancelar pedidos
 │   ├── whatsapp.ts                 # Envio, assinatura do webhook e fila por cliente
+│   ├── twilio.ts                   # Adaptador Twilio: envio, opções numeradas e assinatura
 │   ├── chatbot/                    # Atendimento: fluxo guiado (fluxo.ts), IA plano B (agente.ts),
 │   │                               # orquestração (atendimento.ts), prompt, ferramentas e avisos
 │   └── prisma.ts                   # Singleton do PrismaClient

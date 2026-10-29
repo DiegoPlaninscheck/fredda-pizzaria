@@ -1,10 +1,15 @@
 import crypto from 'crypto'
 import type { MensagemSaida } from '@/lib/chatbot/mensagens'
+import { enviarMensagensTwilio, enviarTextoTwilio, twilioConfigurado } from '@/lib/twilio'
 
 const GRAPH_API = `https://graph.facebook.com/${process.env.WHATSAPP_API_VERSION || 'v23.0'}`
 const LIMITE_TEXTO = 4096 // limite da Cloud API por mensagem
 
+/** Por onde as mensagens saem: Cloud API da Meta (padrão) ou Twilio. */
+export const usaTwilio = () => process.env.WHATSAPP_PROVEDOR === 'twilio'
+
 export function whatsappConfigurado() {
+  if (usaTwilio()) return twilioConfigurado()
   return Boolean(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID)
 }
 
@@ -40,6 +45,7 @@ async function chamarGraphApi(corpo: Record<string, unknown>) {
 /** Envia uma mensagem de texto (quebrando em partes se passar do limite da API). */
 export async function enviarTexto(para: string, texto: string) {
   if (!podeEnviar(para, texto)) return
+  if (usaTwilio()) return enviarTextoTwilio(para, texto)
   for (let i = 0; i < texto.length; i += LIMITE_TEXTO) {
     await chamarGraphApi({
       to: para,
@@ -49,8 +55,20 @@ export async function enviarTexto(para: string, texto: string) {
   }
 }
 
+/**
+ * Envia a resposta do atendimento automático. Na Twilio as mensagens vão juntas
+ * em um texto só, para numerar as opções em sequência.
+ */
+export async function enviarMensagens(para: string, msgs: MensagemSaida[]) {
+  if (usaTwilio()) {
+    if (msgs.length === 0 || !podeEnviar(para, msgs.map((m) => m.texto).join('\n'))) return
+    return enviarMensagensTwilio(para, msgs)
+  }
+  for (const msg of msgs) await enviarMensagem(para, msg)
+}
+
 /** Envia uma mensagem do atendimento automático (texto, botões ou lista). */
-export async function enviarMensagem(para: string, msg: MensagemSaida) {
+async function enviarMensagem(para: string, msg: MensagemSaida) {
   if (msg.tipo === 'texto') return enviarTexto(para, msg.texto)
   if (!podeEnviar(para, msg.texto)) return
 
@@ -78,7 +96,7 @@ export async function enviarMensagem(para: string, msg: MensagemSaida) {
 
 /** Marca a mensagem como lida (os "dois tiques azuis" para o cliente). */
 export async function marcarComoLida(waMessageId: string) {
-  if (!whatsappConfigurado()) return
+  if (usaTwilio() || !whatsappConfigurado()) return
   await chamarGraphApi({ status: 'read', message_id: waMessageId }).catch((e) =>
     console.warn('[whatsapp] falha ao marcar como lida:', e.message)
   )
@@ -122,9 +140,33 @@ interface PayloadWebhook {
             list_reply?: { id: string; title: string }
           }
         }[]
+        statuses?: {
+          id: string
+          status: string
+          recipient_id: string
+          errors?: { code: number; title?: string; error_data?: { details?: string } }[]
+        }[]
       }
     }[]
   }[]
+}
+
+/**
+ * A Meta aceita o envio (200) e só avisa depois, por um status "failed", quando
+ * a mensagem não chega ao celular. Registra essas falhas no log para diagnóstico.
+ */
+export function registrarFalhasDeEntrega(payload: PayloadWebhook) {
+  for (const entry of payload.entry ?? []) {
+    for (const change of entry.changes ?? []) {
+      for (const s of change.value?.statuses ?? []) {
+        if (s.status !== 'failed') continue
+        const motivo = (s.errors ?? [])
+          .map((e) => `(#${e.code}) ${e.title ?? ''} ${e.error_data?.details ?? ''}`.trim())
+          .join('; ')
+        console.warn(`[whatsapp] mensagem para ${s.recipient_id} não foi entregue: ${motivo || 'sem detalhes'}`)
+      }
+    }
+  }
 }
 
 /**

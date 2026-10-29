@@ -1,5 +1,12 @@
 import { NextResponse } from 'next/server'
-import { assinaturaValida, enfileirar, enviarMensagem, extrairMensagens, marcarComoLida } from '@/lib/whatsapp'
+import {
+  assinaturaValida,
+  enfileirar,
+  enviarMensagens,
+  extrairMensagens,
+  marcarComoLida,
+  registrarFalhasDeEntrega,
+} from '@/lib/whatsapp'
 import { atenderMensagem } from '@/lib/chatbot/atendimento'
 
 // Rota pública (fora do middleware): quem autentica é a assinatura da Meta.
@@ -33,11 +40,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'JSON inválido' }, { status: 400 })
   }
 
+  registrarFalhasDeEntrega(payload)
+
   for (const mensagem of extrairMensagens(payload)) {
     enfileirar(mensagem.telefone, async () => {
       await marcarComoLida(mensagem.waMessageId)
       const saidas = await atenderMensagem(mensagem)
-      for (const saida of saidas) await enviarMensagem(mensagem.telefone, saida)
+      await enviarMensagens(mensagem.telefone, saidas)
     }).catch((e) => console.error(`[whatsapp] erro ao processar mensagem de ${mensagem.telefone}:`, e))
   }
 

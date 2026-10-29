@@ -19,7 +19,11 @@
       "PowerShell(Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All)",
       "PowerShell(wsl --status 2>&1)",
       "PowerShell(wsl --version 2>&1)",
-      "PowerShell(Get-Service com.docker.service -ErrorAction SilentlyContinue)"
+      "PowerShell(Get-Service com.docker.service -ErrorAction SilentlyContinue)",
+      "ClaudeInChromeDomain(hpanel.hostinger.com)",
+      "ClaudeInChromeDomain(cam.hostingervps.com)",
+      "ClaudeInChromeDomain(1console.twilio.com)",
+      "ClaudeInChromeDomain(console.twilio.com)"
     ]
   }
 }
