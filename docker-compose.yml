@@ -34,20 +34,17 @@ services:
       WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
       WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
       WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
-<<<<<<< Updated upstream
-      # Microsserviço de previsão de demanda (rede interna do compose)
-      IA_URL: http://ia:8000
-      IA_API_KEY: ${IA_API_KEY:-}
-=======
       # WhatsApp via Twilio (Sandbox) — ativo com WHATSAPP_PROVEDOR=twilio
       WHATSAPP_PROVEDOR: ${WHATSAPP_PROVEDOR:-meta}
       TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
       TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
       TWILIO_WHATSAPP_FROM: ${TWILIO_WHATSAPP_FROM:-}
       TWILIO_WEBHOOK_URL: ${TWILIO_WEBHOOK_URL:-}
+      # Microsserviço de previsão de demanda (rede interna do compose)
+      IA_URL: http://ia:8000
+      IA_API_KEY: ${IA_API_KEY:-}
     # Só em 127.0.0.1: em produção o acesso externo passa pelo Caddy (HTTPS).
     # Publicar em 0.0.0.0 expõe a porta mesmo com o ufw bloqueando (o Docker ignora o ufw).
->>>>>>> Stashed changes
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:
