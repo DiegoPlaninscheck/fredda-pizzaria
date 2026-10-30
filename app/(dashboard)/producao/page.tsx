@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/Toast'
 import Link from 'next/link'
 
 interface OrdemResumo {
@@ -54,6 +56,8 @@ function etapaAtual(etapas: OrdemResumo['etapas']): string {
 }
 
 export default function ProducaoPage() {
+  const confirmar = useConfirm()
+  const toast = useToast()
   const [ordens, setOrdens] = useState<OrdemResumo[]>([])
   const [loading, setLoading] = useState(true)
   const [filtroStatus, setFiltroStatus] = useState('')
@@ -72,16 +76,24 @@ export default function ProducaoPage() {
   }, [carregar])
 
   async function cancelar(id: string) {
-    if (!confirm('Cancelar esta ordem de produção?')) return
+    const ok = await confirmar({
+      titulo: 'Cancelar esta ordem de produção?',
+      descricao: 'A ordem é encerrada e não pode ser retomada.',
+      confirmar: 'Cancelar ordem',
+      perigo: true,
+    })
+    if (!ok) return
     const res = await fetch(`/api/ordens/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'CANCELADA' }),
     })
-    if (res.ok) carregar()
-    else {
-      const d = await res.json()
-      alert(d.error || 'Erro ao cancelar')
+    if (res.ok) {
+      toast.sucesso('Ordem de produção cancelada')
+      carregar()
+    } else {
+      const d = await res.json().catch(() => ({}))
+      toast.erro('Não foi possível cancelar a ordem', d.error)
     }
   }
 
@@ -92,12 +104,12 @@ export default function ProducaoPage() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Produção</h1>
+          <h1 className="font-display text-3xl font-bold text-brand-900">Produção</h1>
           <p className="text-sm text-gray-500 mt-1">Ordens de produção e controle de fermentação</p>
         </div>
         <Link
           href="/producao/nova"
-          className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="bg-brand-900 hover:bg-brand-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           + Nova Ordem
         </Link>

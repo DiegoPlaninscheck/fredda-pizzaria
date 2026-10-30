@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/Toast'
 
 interface Receita {
   id: string
@@ -27,6 +29,8 @@ interface Venda {
 
 export default function VendasPage() {
   const { data: session } = useSession()
+  const confirmar = useConfirm()
+  const toast = useToast()
   const isAdmin = session?.user?.role === 'ADMIN'
   const [vendas, setVendas] = useState<Venda[]>([])
   const [receitas, setReceitas] = useState<Receita[]>([])
@@ -62,18 +66,29 @@ export default function VendasPage() {
       const atualizada: Venda = await res.json()
       setVendas((lista) => lista.map((v) => (v.id === atualizada.id ? atualizada : v)))
     } else {
-      const d = await res.json()
-      alert(d.error || 'Erro ao atualizar venda')
+      const d = await res.json().catch(() => ({}))
+      toast.erro('Não foi possível atualizar a venda', d.error)
     }
   }
 
   async function cancelar(venda: Venda) {
-    if (!confirm(`Cancelar a venda de ${venda.receita.nome} para ${venda.cliente}? As unidades voltam para o estoque.`)) return
+    const ok = await confirmar({
+      titulo: 'Cancelar esta venda?',
+      itens: [
+        `${Number(venda.quantidade)}× ${venda.receita.nome} para ${venda.cliente}`,
+        'As unidades voltam para o estoque',
+      ],
+      confirmar: 'Cancelar venda',
+      perigo: true,
+    })
+    if (!ok) return
     const res = await fetch(`/api/vendas/${venda.id}`, { method: 'DELETE' })
-    if (res.ok) carregar()
-    else {
-      const d = await res.json()
-      alert(d.error || 'Erro ao cancelar venda')
+    if (res.ok) {
+      toast.sucesso('Venda cancelada', 'As unidades voltaram para o estoque.')
+      carregar()
+    } else {
+      const d = await res.json().catch(() => ({}))
+      toast.erro('Não foi possível cancelar a venda', d.error)
     }
   }
 
@@ -113,31 +128,31 @@ export default function VendasPage() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Vendas</h1>
+          <h1 className="font-display text-3xl font-bold text-brand-900">Vendas</h1>
           <p className="text-sm text-gray-500 mt-1">Histórico de vendas registradas</p>
         </div>
         <Link
           href="/vendas/nova"
-          className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="bg-brand-900 hover:bg-brand-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           + Registrar Venda
         </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div className="bg-white border border-[#e7e1cf] rounded-2xl p-4 shadow-sm">
           <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Quantidade vendida (filtro)</p>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="font-display text-3xl font-bold text-brand-900">
             {totalQuantidade.toLocaleString('pt-BR', { maximumFractionDigits: 3 })}
           </p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div className="bg-white border border-[#e7e1cf] rounded-2xl p-4 shadow-sm">
           <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Faturamento (filtro)</p>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="font-display text-3xl font-bold text-brand-900">
             R$ {totalFaturamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div className="bg-white border border-[#e7e1cf] rounded-2xl p-4 shadow-sm">
           <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">A receber (não pago)</p>
           <p className={`text-2xl font-bold ${totalPendentePagamento > 0 ? 'text-red-600' : 'text-gray-900'}`}>
             R$ {totalPendentePagamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -145,7 +160,7 @@ export default function VendasPage() {
         </div>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm">
+      <div className="bg-white border border-[#e7e1cf] rounded-2xl p-4 mb-4 shadow-sm">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">Receita</label>
@@ -206,11 +221,11 @@ export default function VendasPage() {
       {loading ? (
         <p className="text-gray-500 text-sm">Carregando...</p>
       ) : vendas.length === 0 ? (
-        <div className="text-center py-10 text-gray-400 bg-white border border-gray-200 rounded-xl">
+        <div className="text-center py-10 text-gray-400 bg-white border border-[#e7e1cf] rounded-2xl">
           <p>Nenhuma venda encontrada</p>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-white border border-[#e7e1cf] rounded-2xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">

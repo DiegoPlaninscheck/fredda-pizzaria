@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { adicionarSemanas, formatarSemana, segundaDaSemana } from '@/lib/semanas'
 import type { ItemSugestao, Sugestao } from '@/lib/planejamento'
 
@@ -32,6 +33,7 @@ function opcoesSemana() {
 
 export default function PlanejamentoPage() {
   const { data: session } = useSession()
+  const confirmar = useConfirm()
   const isAdmin = session?.user?.role === 'ADMIN'
   const semanas = useMemo(opcoesSemana, [])
 
@@ -152,7 +154,12 @@ export default function PlanejamentoPage() {
   }
 
   async function retreinar() {
-    if (!confirm('Retreinar o modelo com o histórico de vendas atual? Isso pode levar alguns minutos.')) return
+    const ok = await confirmar({
+      titulo: 'Retreinar o modelo de previsão?',
+      itens: ['Usa todo o histórico de vendas atual', 'Pode levar alguns minutos', 'Fica ativo o método que errar menos na validação (modelo ou média móvel)'],
+      confirmar: 'Retreinar',
+    })
+    if (!ok) return
     setTreinando(true)
     setErro('')
     const res = await fetch('/api/planejamento/modelo', { method: 'POST' })
@@ -174,7 +181,7 @@ export default function PlanejamentoPage() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Planejamento de produção</h1>
+          <h1 className="font-display text-3xl font-bold text-brand-900">Planejamento de produção</h1>
           <p className="text-sm text-gray-500 mt-1">Sugestão semanal a partir da previsão de demanda</p>
         </div>
         <Link
@@ -185,7 +192,7 @@ export default function PlanejamentoPage() {
         </Link>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm flex flex-wrap items-end gap-4">
+      <div className="bg-white border border-[#e7e1cf] rounded-2xl p-4 mb-4 shadow-sm flex flex-wrap items-end gap-4">
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Semana</label>
           <select
@@ -254,12 +261,12 @@ export default function PlanejamentoPage() {
       {carregando ? (
         <p className="text-gray-500 text-sm">Gerando sugestão...</p>
       ) : !sugestao ? null : sugestao.itens.length === 0 ? (
-        <div className="text-center py-10 text-gray-400 bg-white border border-gray-200 rounded-xl">
+        <div className="text-center py-10 text-gray-400 bg-white border border-[#e7e1cf] rounded-2xl">
           <p>Nenhuma receita ativa cadastrada</p>
         </div>
       ) : (
         <>
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="bg-white border border-[#e7e1cf] rounded-2xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -332,7 +339,7 @@ export default function PlanejamentoPage() {
               type="button"
               onClick={salvar}
               disabled={salvando}
-              className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+              className="bg-brand-900 hover:bg-brand-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
             >
               {salvando ? 'Salvando...' : plano ? 'Atualizar plano' : 'Salvar plano'}
             </button>

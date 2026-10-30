@@ -97,12 +97,12 @@ export default function DetalheInsumoPage() {
         </Link>
         <div className="flex items-start justify-between mt-2">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{insumo.nome}</h1>
+            <h1 className="font-display text-3xl font-bold text-brand-900">{insumo.nome}</h1>
             <p className="text-sm text-gray-500 mt-1">{insumo.categoria.nome}</p>
           </div>
           <Link
             href={`/estoque/${id}/movimentacao`}
-            className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            className="bg-brand-900 hover:bg-brand-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
           >
             + Registrar Movimentação
           </Link>
@@ -121,24 +121,24 @@ export default function DetalheInsumoPage() {
           )}
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div className="bg-white border border-[#e7e1cf] rounded-2xl p-4 shadow-sm">
           <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Estoque Mínimo</p>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="font-display text-3xl font-bold text-brand-900">
             {Number(insumo.estoqueMinimo).toLocaleString('pt-BR', { maximumFractionDigits: 3 })}
           </p>
           <p className="text-sm text-gray-500">{insumo.unidade}</p>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div className="bg-white border border-[#e7e1cf] rounded-2xl p-4 shadow-sm">
           <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Preço Unitário</p>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="font-display text-3xl font-bold text-brand-900">
             {insumo.precoUnitario
               ? `R$ ${Number(insumo.precoUnitario).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
               : '—'}
           </p>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div className="bg-white border border-[#e7e1cf] rounded-2xl p-4 shadow-sm">
           <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Fornecedor Padrão</p>
           <p className="text-base font-semibold text-gray-900 truncate">
             {insumo.fornecedor?.nome || '—'}
@@ -147,7 +147,7 @@ export default function DetalheInsumoPage() {
       </div>
 
       {/* Filtros */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm">
+      <div className="bg-white border border-[#e7e1cf] rounded-2xl p-4 mb-4 shadow-sm">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">Tipo</label>
@@ -205,11 +205,11 @@ export default function DetalheInsumoPage() {
       </div>
 
       {movimentacoes.length === 0 ? (
-        <div className="text-center py-10 text-gray-400 bg-white border border-gray-200 rounded-xl">
+        <div className="text-center py-10 text-gray-400 bg-white border border-[#e7e1cf] rounded-2xl">
           <p>Nenhuma movimentação encontrada</p>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-white border border-[#e7e1cf] rounded-2xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">

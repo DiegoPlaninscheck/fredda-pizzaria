@@ -64,26 +64,26 @@ export default function ComparacaoPage() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Planejado x realizado</h1>
+          <h1 className="font-display text-3xl font-bold text-brand-900">Planejado x realizado</h1>
           <p className="text-sm text-gray-500 mt-1">Previsão e plano de cada semana comparados com a produção concluída e as vendas</p>
         </div>
         <Link href="/planejamento" className="text-sm text-gray-500 hover:text-gray-700 underline">Voltar ao planejamento</Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div className="bg-white border border-[#e7e1cf] rounded-2xl p-4 shadow-sm">
           <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Erro médio da previsão</p>
-          <p className="text-2xl font-bold text-gray-900">{ind.erroMedio === null ? '—' : `${fmt(ind.erroMedio)} un.`}</p>
+          <p className="font-display text-3xl font-bold text-brand-900">{ind.erroMedio === null ? '—' : `${fmt(ind.erroMedio)} un.`}</p>
           <p className="text-xs text-gray-400 mt-1">por sabor e semana encerrada ({ind.semanas})</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div className="bg-white border border-[#e7e1cf] rounded-2xl p-4 shadow-sm">
           <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Vendas dentro da faixa prevista</p>
-          <p className="text-2xl font-bold text-gray-900">{pct(ind.dentroDoIntervalo)}</p>
+          <p className="font-display text-3xl font-bold text-brand-900">{pct(ind.dentroDoIntervalo)}</p>
           <p className="text-xs text-gray-400 mt-1">o esperado é em torno de 80%</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div className="bg-white border border-[#e7e1cf] rounded-2xl p-4 shadow-sm">
           <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Produção / planejado</p>
-          <p className="text-2xl font-bold text-gray-900">{pct(ind.aderencia)}</p>
+          <p className="font-display text-3xl font-bold text-brand-900">{pct(ind.aderencia)}</p>
           <p className="text-xs text-gray-400 mt-1">ordens concluídas na semana</p>
         </div>
       </div>
@@ -91,7 +91,7 @@ export default function ComparacaoPage() {
       {carregando ? (
         <p className="text-gray-500 text-sm">Carregando...</p>
       ) : semanas.length === 0 ? (
-        <div className="text-center py-10 text-gray-400 bg-white border border-gray-200 rounded-xl">
+        <div className="text-center py-10 text-gray-400 bg-white border border-[#e7e1cf] rounded-2xl">
           <p>Nenhum plano salvo ainda.</p>
           <Link href="/planejamento" className="text-sm text-brand-600 hover:underline">Criar o primeiro plano</Link>
         </div>
@@ -107,7 +107,7 @@ export default function ComparacaoPage() {
             const maximo = Math.max(totais.previsao, totais.planejado, totais.produzido, totais.vendido)
             const sit = SITUACAO[s.situacao]
             return (
-              <div key={s.semana} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+              <div key={s.semana} className="bg-white border border-[#e7e1cf] rounded-2xl shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-gray-100 flex flex-wrap gap-4 items-start">
                   <div className="min-w-[10rem]">
                     <p className="font-semibold text-gray-900">{formatarSemana(s.semana)}</p>

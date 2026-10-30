@@ -79,7 +79,7 @@ export default function ConversaPage() {
       <div className="mb-6">
         <button onClick={() => router.push('/pedidos')} className="text-sm text-gray-500 hover:text-gray-700">← Pedidos</button>
         <div className="flex flex-wrap items-center gap-3 mt-2">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="font-display text-3xl font-bold text-brand-900">
             {conversa.cliente.nome || formatarTelefone(conversa.cliente.telefone)}
           </h1>
           <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${status.style}`}>{status.label}</span>
@@ -101,7 +101,7 @@ export default function ConversaPage() {
 
       {erro && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg mb-4">{erro}</p>}
 
-      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4">
+      <div className="bg-white border border-[#e7e1cf] rounded-2xl p-5 shadow-sm space-y-4">
         <Transcricao mensagens={conversa.mensagens} />
 
         {conversa.status !== 'ENCERRADA' && (
@@ -117,7 +117,7 @@ export default function ConversaPage() {
               <button
                 type="submit"
                 disabled={enviando || !texto.trim()}
-                className="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg"
+                className="bg-brand-900 hover:bg-brand-800 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg"
               >
                 {enviando ? 'Enviando...' : 'Enviar'}
               </button>

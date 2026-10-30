@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/Toast'
 
 interface Categoria {
   id: string
@@ -11,6 +13,8 @@ interface Categoria {
 }
 
 export default function CategoriasPage() {
+  const confirmar = useConfirm()
+  const toast = useToast()
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState('')
@@ -81,25 +85,39 @@ export default function CategoriasPage() {
 
   async function inativar(cat: Categoria) {
     if (cat._count.insumos > 0) {
-      alert(`Não é possível inativar: categoria possui ${cat._count.insumos} insumo(s) ativo(s) vinculado(s).`)
+      toast.alerta(
+        `Não é possível inativar "${cat.nome}"`,
+        `A categoria tem ${cat._count.insumos} insumo(s) ativo(s) vinculado(s). Mova ou inative esses insumos antes.`
+      )
       return
     }
-    if (!confirm(`Inativar categoria "${cat.nome}"?`)) return
+    const ok = await confirmar({
+      titulo: `Inativar a categoria "${cat.nome}"?`,
+      descricao: 'Ela deixa de aparecer na lista de categorias. Dá para reativar depois.',
+      confirmar: 'Inativar',
+      perigo: true,
+    })
+    if (!ok) return
     const res = await fetch(`/api/categorias/${cat.id}`, { method: 'DELETE' })
-    if (res.ok) carregarCategorias()
-    else {
-      const data = await res.json()
-      alert(data.error || 'Erro ao inativar')
+    if (res.ok) {
+      toast.sucesso(`Categoria "${cat.nome}" inativada`)
+      carregarCategorias()
+    } else {
+      const data = await res.json().catch(() => ({}))
+      toast.erro('Não foi possível inativar a categoria', data.error)
     }
   }
 
   async function reativar(cat: Categoria) {
-    if (!confirm(`Reativar categoria "${cat.nome}"?`)) return
+    const ok = await confirmar({ titulo: `Reativar a categoria "${cat.nome}"?`, confirmar: 'Reativar' })
+    if (!ok) return
     const res = await fetch(`/api/categorias/${cat.id}`, { method: 'PATCH' })
-    if (res.ok) carregarCategorias()
-    else {
-      const data = await res.json()
-      alert(data.error || 'Erro ao reativar')
+    if (res.ok) {
+      toast.sucesso(`Categoria "${cat.nome}" reativada`)
+      carregarCategorias()
+    } else {
+      const data = await res.json().catch(() => ({}))
+      toast.erro('Não foi possível reativar a categoria', data.error)
     }
   }
 
@@ -107,7 +125,7 @@ export default function CategoriasPage() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Categorias</h1>
+          <h1 className="font-display text-3xl font-bold text-brand-900">Categorias</h1>
           <p className="text-sm text-gray-500 mt-1">Organize os insumos por categoria</p>
         </div>
         <div className="flex items-center gap-3">
@@ -122,7 +140,7 @@ export default function CategoriasPage() {
           </label>
           <button
             onClick={abrirNovo}
-            className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            className="bg-brand-900 hover:bg-brand-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
           >
             + Nova Categoria
           </button>
@@ -130,7 +148,7 @@ export default function CategoriasPage() {
       </div>
 
       {showForm && (
-        <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6 shadow-sm">
+        <div className="bg-white border border-[#e7e1cf] rounded-2xl p-6 mb-6 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             {editando ? 'Editar Categoria' : 'Nova Categoria'}
           </h2>
@@ -162,7 +180,7 @@ export default function CategoriasPage() {
               <button
                 type="submit"
                 disabled={salvando}
-                className="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                className="bg-brand-900 hover:bg-brand-800 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
               >
                 {salvando ? 'Salvando...' : 'Salvar'}
               </button>
@@ -188,7 +206,7 @@ export default function CategoriasPage() {
           <p className="text-sm mt-1">Clique em &quot;Nova Categoria&quot; para começar</p>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-white border border-[#e7e1cf] rounded-2xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">

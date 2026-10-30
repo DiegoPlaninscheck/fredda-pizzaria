@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/Toast'
 import Link from 'next/link'
 
 interface ReceitaInsumo {
@@ -22,6 +24,8 @@ interface Receita {
 }
 
 export default function ReceitasPage() {
+  const confirmar = useConfirm()
+  const toast = useToast()
   const [receitas, setReceitas] = useState<Receita[]>([])
   const [loading, setLoading] = useState(true)
   const [expandida, setExpandida] = useState<string | null>(null)
@@ -36,12 +40,20 @@ export default function ReceitasPage() {
   useEffect(() => { carregar() }, [])
 
   async function inativar(id: string) {
-    if (!confirm('Inativar esta receita?')) return
+    const ok = await confirmar({
+      titulo: 'Inativar esta receita?',
+      itens: ['Ela sai do cardápio do site e do WhatsApp', 'O histórico de vendas é mantido'],
+      confirmar: 'Inativar',
+      perigo: true,
+    })
+    if (!ok) return
     const res = await fetch(`/api/receitas/${id}`, { method: 'DELETE' })
-    if (res.ok) carregar()
-    else {
-      const d = await res.json()
-      alert(d.error || 'Erro ao inativar')
+    if (res.ok) {
+      toast.sucesso('Receita inativada')
+      carregar()
+    } else {
+      const d = await res.json().catch(() => ({}))
+      toast.erro('Não foi possível inativar a receita', d.error)
     }
   }
 
@@ -49,12 +61,12 @@ export default function ReceitasPage() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Receitas</h1>
+          <h1 className="font-display text-3xl font-bold text-brand-900">Receitas</h1>
           <p className="text-sm text-gray-500 mt-1">Fichas técnicas das pizzas</p>
         </div>
         <Link
           href="/receitas/nova"
-          className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="bg-brand-900 hover:bg-brand-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           + Nova Receita
         </Link>
@@ -70,7 +82,7 @@ export default function ReceitasPage() {
       ) : (
         <div className="space-y-3">
           {receitas.map((r) => (
-            <div key={r.id} className="bg-white border border-gray-200 rounded-xl shadow-sm">
+            <div key={r.id} className="bg-white border border-[#e7e1cf] rounded-2xl shadow-sm">
               <div
                 className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 cursor-pointer"
                 onClick={() => setExpandida(expandida === r.id ? null : r.id)}

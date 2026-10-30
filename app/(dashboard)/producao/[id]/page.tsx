@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/Toast'
 
 interface RegistroCondicoes {
   id: string
@@ -296,6 +298,8 @@ function EtapaCard({
 
 export default function OrdemDetalhe() {
   const router = useRouter()
+  const confirmar = useConfirm()
+  const toast = useToast()
   const params = useParams()
   const id = params.id as string
 
@@ -367,13 +371,25 @@ export default function OrdemDetalhe() {
   }
 
   async function cancelarOrdem() {
-    if (!confirm('Cancelar esta ordem de produção?')) return
+    const ok = await confirmar({
+      titulo: 'Cancelar esta ordem de produção?',
+      descricao: 'A ordem é encerrada e não pode ser retomada.',
+      confirmar: 'Cancelar ordem',
+      perigo: true,
+    })
+    if (!ok) return
     const res = await fetch(`/api/ordens/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'CANCELADA' }),
     })
-    if (res.ok) carregar()
+    if (res.ok) {
+      toast.sucesso('Ordem de produção cancelada')
+      carregar()
+    } else {
+      const d = await res.json().catch(() => ({}))
+      toast.erro('Não foi possível cancelar a ordem', d.error)
+    }
   }
 
   if (loading) return <p className="text-gray-500 text-sm">Carregando...</p>
@@ -386,7 +402,7 @@ export default function OrdemDetalhe() {
       <div className="mb-6">
         <button onClick={() => router.push('/producao')} className="text-sm text-gray-500 hover:text-gray-700">← Produção</button>
         <div className="flex items-center gap-3 mt-2 flex-wrap">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="font-display text-3xl font-bold text-brand-900">
             {ordem.receitas.map((r) => r.receita.nome).join(', ')}
           </h1>
           <span className={`text-sm font-medium px-3 py-1 rounded-full ${STATUS_STYLE[ordem.status]}`}>
@@ -423,7 +439,7 @@ export default function OrdemDetalhe() {
         ))}
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6 space-y-4">
+      <div className="bg-white border border-[#e7e1cf] rounded-2xl p-4 mb-6 space-y-4">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
           Ingredientes das receitas (por unidade)
         </h2>

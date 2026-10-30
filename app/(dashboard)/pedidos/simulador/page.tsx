@@ -134,7 +134,7 @@ export default function SimuladorPage() {
     <div className="max-w-3xl">
       <div className="mb-4">
         <button onClick={() => router.push('/pedidos')} className="text-sm text-gray-500 hover:text-gray-700">← Pedidos</button>
-        <h1 className="text-2xl font-bold text-gray-900 mt-2">Simulador do WhatsApp</h1>
+        <h1 className="font-display text-3xl font-bold text-brand-900 mt-2">Simulador do WhatsApp</h1>
         <p className="text-sm text-gray-500 mt-1">
           Converse como se fosse um cliente. Os pedidos criados aqui são reais (reservam estoque e aparecem em Pedidos)
           e ficam identificados como &quot;Simulador&quot;.
@@ -201,7 +201,7 @@ export default function SimuladorPage() {
           <button
             type="submit"
             disabled={enviando || !texto.trim()}
-            className="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-full"
+            className="bg-brand-900 hover:bg-brand-800 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-full"
           >
             Enviar
           </button>

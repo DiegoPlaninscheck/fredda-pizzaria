@@ -15,13 +15,19 @@ O sistema usa uma paleta verde/teal (`brand-*`, definida em `tailwind.config.ts`
 
 | Tom | Hex | Uso típico |
 |-----|-----|------------|
-| `brand-50`  | `#f0f7f3` | Fundos suaves, hover de itens de menu |
-| `brand-500` | `#3d8563` | Realces, ícones ativos |
-| `brand-600` | `#2b6b4d` | Botões primários, links de ação |
-| `brand-700` | `#1f5439` | Hover de botões primários |
-| `brand-900` | `#0f231a` | Texto sobre fundos claros da marca |
+| `brand-50`  | `#f0f7f3` | Fundos suaves, etiquetas |
+| `brand-700` | `#1f5439` | Links de ação, preços |
+| `brand-900` | `#0f231a` | Sidebar, hero da landing, botões primários |
+| `creme-50`  | `#fbf8f0` | Fundo das páginas |
+| `creme-200` | `#e9dcb4` | Texto e destaques sobre o verde-escuro, item ativo da sidebar |
 
-O logo (uma fatia de pizza numa cadeira de praia dentro de um cubo de gelo) aparece na página de login, no cabeçalho da sidebar e como favicon (`app/layout.tsx`).
+Os tons creme e verde-escuro vêm das artes da marca (cardápio e posts do @fredda.pizza). Os títulos usam a serifada **Zilla Slab** (`font-display`) e o texto corrido, **Inter** — ambas via `next/font` em `app/layout.tsx`.
+
+O logo (uma fatia de pizza numa cadeira de praia dentro de um cubo de gelo) aparece na landing page, na página de login, no cabeçalho da sidebar e como favicon (`app/layout.tsx`).
+
+**Componentes de UI** (`components/ui/`): `Button` (com estado de carregamento), `Card`, `Badge`, `PageHeader`, `ConfirmDialog` (`useConfirm()`, substitui o `window.confirm`) e `Toast` (`useToast()`, avisos de sucesso/alerta/erro). Os gráficos do dashboard usam `recharts` e os ícones, `lucide-react`.
+
+**Landing page** (`app/page.tsx`): hero com a "Anatomia de uma Fredda", diferenciais, destaque Blume con Cipolla, cardápio com preços (receitas ativas com `precoVenda`), modo de preparo, retirada na Vila Nova e botões para o WhatsApp. As artes ficam em `public/marketing/`.
 
 ---
 

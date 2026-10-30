@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/Toast'
 import Link from 'next/link'
 
 interface Categoria {
@@ -21,6 +23,8 @@ interface Insumo {
 }
 
 export default function EstoquePage() {
+  const confirmar = useConfirm()
+  const toast = useToast()
   const [insumos, setInsumos] = useState<Insumo[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [loading, setLoading] = useState(true)
@@ -47,8 +51,16 @@ export default function EstoquePage() {
   useEffect(() => { carregar() }, [carregar])
 
   async function inativar(insumo: Insumo) {
-    if (!confirm(`Inativar "${insumo.nome}"?`)) return
-    await fetch(`/api/insumos/${insumo.id}`, { method: 'DELETE' })
+    const ok = await confirmar({
+      titulo: `Inativar "${insumo.nome}"?`,
+      descricao: 'O insumo sai da lista de estoque e dos alertas. As movimentações já registradas são mantidas.',
+      confirmar: 'Inativar',
+      perigo: true,
+    })
+    if (!ok) return
+    const res = await fetch(`/api/insumos/${insumo.id}`, { method: 'DELETE' })
+    if (res.ok) toast.sucesso(`"${insumo.nome}" inativado`)
+    else toast.erro('Não foi possível inativar o insumo', (await res.json().catch(() => ({}))).error)
     carregar()
   }
 
@@ -58,7 +70,7 @@ export default function EstoquePage() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Estoque de Insumos</h1>
+          <h1 className="font-display text-3xl font-bold text-brand-900">Estoque de Insumos</h1>
           <p className="text-sm text-gray-500 mt-1">
             {alertas > 0 && (
               <span className="text-red-600 font-medium">{alertas} insumo(s) abaixo do mínimo · </span>
@@ -68,7 +80,7 @@ export default function EstoquePage() {
         </div>
         <Link
           href="/estoque/novo"
-          className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="bg-brand-900 hover:bg-brand-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           + Novo Insumo
         </Link>
@@ -115,7 +127,7 @@ export default function EstoquePage() {
           <p className="text-sm mt-1">Clique em &quot;Novo Insumo&quot; para cadastrar</p>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-white border border-[#e7e1cf] rounded-2xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">

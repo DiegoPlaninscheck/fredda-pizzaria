@@ -21,6 +21,19 @@ const config: Config = {
           800: '#17402c',
           900: '#0f231a',
         },
+        // Tons das artes da marca (texto creme sobre o verde-escuro)
+        creme: {
+          50: '#fbf8f0',
+          100: '#f6f0de',
+          200: '#e9dcb4',
+          300: '#d8ceb0',
+          400: '#b9b096',
+          500: '#8f8670',
+        },
+      },
+      fontFamily: {
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'Georgia', 'serif'],
       },
     },
   },

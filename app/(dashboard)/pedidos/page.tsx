@@ -56,7 +56,7 @@ export default function PedidosPage() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pedidos</h1>
+          <h1 className="font-display text-3xl font-bold text-brand-900">Pedidos</h1>
           <p className="text-sm text-gray-500 mt-1">Pedidos feitos pelos clientes no WhatsApp (atualiza a cada 15s)</p>
         </div>
         <Link
@@ -116,7 +116,7 @@ export default function PedidosPage() {
           <p className="text-sm mt-1">Os pedidos feitos pelo chatbot do WhatsApp aparecem aqui</p>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-white border border-[#e7e1cf] rounded-2xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">

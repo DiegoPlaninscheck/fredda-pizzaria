@@ -3,121 +3,178 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { signOut } from 'next-auth/react'
+import { signOut, useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
+import {
+  BookOpen, CircleDollarSign, LayoutDashboard, LineChart, LogOut, Menu, Package, ShoppingBag, Tags, Timer, Truck, X,
+  type LucideIcon,
+} from 'lucide-react'
+import { cn } from '@/components/ui/cn'
+
+interface ItemNav {
+  href: string
+  label: string
+  icone: LucideIcon
+  badge?: number
+}
+
+// Os contadores também mudam sem navegação (pedidos novos pelo WhatsApp)
+const INTERVALO_CONTADORES_MS = 30_000
+
+/** Evento para as telas pedirem a atualização dos contadores logo após uma ação. */
+export const EVENTO_CONTADORES = 'fredda:atualizar-contadores'
+
+function iniciais(nome?: string | null) {
+  if (!nome) return '?'
+  const partes = nome.trim().split(/\s+/)
+  return (partes[0][0] + (partes.length > 1 ? partes[partes.length - 1][0] : '')).toUpperCase()
+}
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const { data: session } = useSession()
   const [alertas, setAlertas] = useState(0)
   const [pedidosAguardando, setPedidosAguardando] = useState(0)
   const [menuAberto, setMenuAberto] = useState(false)
 
   useEffect(() => {
-    fetch('/api/insumos?alerta=true')
-      .then((r) => r.ok ? r.json() : [])
-      .then((data) => setAlertas(Array.isArray(data) ? data.length : 0))
-    fetch('/api/pedidos/resumo')
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => setPedidosAguardando(data ? data.pendentes + data.conversasAguardando : 0))
+    function carregarContadores() {
+      fetch('/api/insumos?alerta=true')
+        .then((r) => r.ok ? r.json() : [])
+        .then((data) => setAlertas(Array.isArray(data) ? data.length : 0))
+        .catch(() => {})
+      fetch('/api/pedidos/resumo')
+        .then((r) => r.ok ? r.json() : null)
+        .then((data) => setPedidosAguardando(data ? data.pendentes + data.conversasAguardando : 0))
+        .catch(() => {})
+    }
+    carregarContadores()
+    const intervalo = setInterval(carregarContadores, INTERVALO_CONTADORES_MS)
+    window.addEventListener(EVENTO_CONTADORES, carregarContadores)
+    return () => {
+      clearInterval(intervalo)
+      window.removeEventListener(EVENTO_CONTADORES, carregarContadores)
+    }
   }, [pathname])
 
   useEffect(() => {
     setMenuAberto(false)
   }, [pathname])
 
-  const navItems = [
-    { href: '/dashboard', label: 'Dashboard' },
-    { href: '/pedidos', label: 'Pedidos', badge: pedidosAguardando > 0 ? pedidosAguardando : undefined },
-    { href: '/vendas', label: 'Vendas' },
-    { href: '/producao', label: 'Produção' },
-    { href: '/planejamento', label: 'Planejamento' },
-    { href: '/receitas', label: 'Receitas' },
-    { href: '/estoque', label: 'Estoque', badge: alertas > 0 ? alertas : undefined },
-    { href: '/fornecedores', label: 'Fornecedores' },
-    { href: '/categorias', label: 'Categorias' },
+  const grupos: { titulo: string; itens: ItemNav[] }[] = [
+    {
+      titulo: 'Operação',
+      itens: [
+        { href: '/dashboard', label: 'Dashboard', icone: LayoutDashboard },
+        { href: '/pedidos', label: 'Pedidos', icone: ShoppingBag, badge: pedidosAguardando },
+        { href: '/vendas', label: 'Vendas', icone: CircleDollarSign },
+      ],
+    },
+    {
+      titulo: 'Produção',
+      itens: [
+        { href: '/producao', label: 'Produção', icone: Timer },
+        { href: '/planejamento', label: 'Planejamento', icone: LineChart },
+        { href: '/receitas', label: 'Receitas', icone: BookOpen },
+      ],
+    },
+    {
+      titulo: 'Cadastros',
+      itens: [
+        { href: '/estoque', label: 'Estoque', icone: Package, badge: alertas },
+        { href: '/fornecedores', label: 'Fornecedores', icone: Truck },
+        { href: '/categorias', label: 'Categorias', icone: Tags },
+      ],
+    },
   ]
+
+  const ativo = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
 
   return (
     <>
-      <header className="md:hidden sticky top-0 z-30 bg-white border-b border-gray-100 flex items-center justify-between px-4 py-3">
+      <header className="md:hidden sticky top-0 z-30 bg-brand-900 flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2.5">
-          <Image
-            src="/fredda_pizzaria.png"
-            alt="Fredda Pizzaria"
-            width={28}
-            height={28}
-            className="rounded-lg"
-          />
-          <span className="font-bold text-gray-900 text-sm">Fredda Pizzaria</span>
+          <Image src="/fredda_pizzaria.png" alt="Fredda Pizzaria" width={30} height={30} className="rounded-lg" />
+          <span className="font-display font-bold text-creme-100 text-lg">pizza fredda</span>
         </div>
         <button
           type="button"
           aria-label={menuAberto ? 'Fechar menu' : 'Abrir menu'}
+          aria-expanded={menuAberto}
           onClick={() => setMenuAberto((v) => !v)}
-          className="p-2 -mr-2 text-gray-600 hover:text-gray-900"
+          className="p-2 -mr-2 text-creme-200 hover:text-creme-100"
         >
-          {menuAberto ? (
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          )}
+          {menuAberto ? <X className="w-6 h-6" aria-hidden="true" /> : <Menu className="w-6 h-6" aria-hidden="true" />}
         </button>
       </header>
 
       {menuAberto && (
-        <div
-          className="md:hidden fixed inset-0 z-30 bg-black/30"
-          onClick={() => setMenuAberto(false)}
-        />
+        <div className="md:hidden fixed inset-0 z-30 bg-black/40" onClick={() => setMenuAberto(false)} />
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-100 flex flex-col transform transition-transform duration-200 ease-in-out md:static md:z-auto md:w-56 md:translate-x-0 ${
+        className={cn(
+          'fixed inset-y-0 left-0 z-40 w-64 bg-brand-900 text-creme-300 flex flex-col transform transition-transform duration-200 ease-in-out',
+          'md:sticky md:top-0 md:h-screen md:z-auto md:w-60 md:translate-x-0',
           menuAberto ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        )}
       >
-        <div className="px-5 py-5 border-b border-gray-100 flex items-center gap-2.5">
-          <Image
-            src="/fredda_pizzaria.png"
-            alt="Fredda Pizzaria"
-            width={32}
-            height={32}
-            className="rounded-lg"
-          />
-          <span className="font-bold text-gray-900 text-base">Fredda Pizzaria</span>
+        <div className="px-5 py-5 border-b border-white/10 flex items-center gap-3">
+          <Image src="/fredda_pizzaria.png" alt="Fredda Pizzaria" width={40} height={40} className="rounded-xl" />
+          <div className="leading-tight">
+            <p className="font-display font-bold text-creme-100 text-xl">pizza fredda</p>
+            <p className="text-xs text-creme-400">Gestão</p>
+          </div>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map(({ href, label, badge }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
-                  ? 'bg-brand-50 text-brand-700'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }`}
-            >
-              <span>{label}</span>
-              {badge !== undefined && (
-                <span className="ml-2 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full text-xs font-bold bg-red-500 text-white">
-                  {badge > 99 ? '99+' : badge}
-                </span>
-              )}
-            </Link>
+        <nav aria-label="Navegação do painel" className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
+          {grupos.map((g) => (
+            <div key={g.titulo}>
+              <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-creme-500">{g.titulo}</p>
+              <div className="space-y-0.5">
+                {g.itens.map(({ href, label, icone: Icone, badge }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    aria-current={ativo(href) ? 'page' : undefined}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors',
+                      ativo(href) ? 'bg-creme-200 text-brand-900 font-semibold' : 'hover:bg-white/5 hover:text-creme-100'
+                    )}
+                  >
+                    <Icone className="w-[18px] h-[18px] flex-none" aria-hidden="true" />
+                    <span className="flex-1">{label}</span>
+                    {badge ? (
+                      <span className={cn(
+                        'inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-bold',
+                        ativo(href) ? 'bg-brand-900 text-creme-100' : 'bg-creme-200 text-brand-900'
+                      )}>
+                        {badge > 99 ? '99+' : badge}
+                      </span>
+                    ) : null}
+                  </Link>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
 
-        <div className="px-3 py-4 border-t border-gray-100">
+        <div className="px-4 py-4 border-t border-white/10 flex items-center gap-3">
+          <span aria-hidden="true" className="flex-none w-9 h-9 rounded-full bg-creme-200 text-brand-900 text-sm font-bold inline-flex items-center justify-center">
+            {iniciais(session?.user?.name)}
+          </span>
+          <div className="flex-1 min-w-0 leading-tight">
+            <p className="text-sm font-semibold text-creme-100 truncate">{session?.user?.name ?? '—'}</p>
+            <p className="text-xs text-creme-400">{session?.user?.role === 'ADMIN' ? 'Administrador' : 'Operador'}</p>
+          </div>
           <button
+            type="button"
+            aria-label="Sair"
+            title="Sair"
             onClick={() => signOut({ callbackUrl: '/login' })}
-            className="w-full flex items-center px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+            className="flex-none w-9 h-9 rounded-xl border border-white/15 inline-flex items-center justify-center hover:bg-white/5 hover:text-creme-100"
           >
-            Sair
+            <LogOut className="w-[18px] h-[18px]" aria-hidden="true" />
           </button>
         </div>
       </aside>

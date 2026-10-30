@@ -63,10 +63,10 @@ export default function NovoInsumoPage() {
         <Link href="/estoque" className="text-sm text-gray-500 hover:text-gray-700">
           ← Estoque
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900 mt-2">Novo Insumo</h1>
+        <h1 className="font-display text-3xl font-bold text-brand-900 mt-2">Novo Insumo</h1>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+      <div className="bg-white border border-[#e7e1cf] rounded-2xl p-6 shadow-sm">
         <form onSubmit={salvar} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
@@ -148,7 +148,7 @@ export default function NovoInsumoPage() {
             <button
               type="submit"
               disabled={salvando}
-              className="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors"
+              className="bg-brand-900 hover:bg-brand-800 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors"
             >
               {salvando ? 'Salvando...' : 'Salvar Insumo'}
             </button>

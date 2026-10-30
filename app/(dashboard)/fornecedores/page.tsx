@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/components/ui/Toast'
 import Link from 'next/link'
 
 interface Fornecedor {
@@ -14,6 +16,8 @@ interface Fornecedor {
 }
 
 export default function FornecedoresPage() {
+  const confirmar = useConfirm()
+  const toast = useToast()
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([])
   const [loading, setLoading] = useState(true)
   const [busca, setBusca] = useState('')
@@ -32,13 +36,16 @@ export default function FornecedoresPage() {
   useEffect(() => { carregar() }, [carregar])
 
   async function toggleAtivo(f: Fornecedor) {
-    const acao = f.ativo ? 'inativar' : 'reativar'
-    if (!confirm(`Deseja ${acao} o fornecedor "${f.nome}"?`)) return
-    await fetch(`/api/fornecedores/${f.id}`, {
+    const acao = f.ativo ? 'Inativar' : 'Reativar'
+    const ok = await confirmar({ titulo: `${acao} o fornecedor "${f.nome}"?`, confirmar: acao, perigo: f.ativo })
+    if (!ok) return
+    const res = await fetch(`/api/fornecedores/${f.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...f, ativo: !f.ativo }),
     })
+    if (res.ok) toast.sucesso(`Fornecedor "${f.nome}" ${f.ativo ? 'inativado' : 'reativado'}`)
+    else toast.erro('Não foi possível atualizar o fornecedor', (await res.json().catch(() => ({}))).error)
     carregar()
   }
 
@@ -46,12 +53,12 @@ export default function FornecedoresPage() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Fornecedores</h1>
+          <h1 className="font-display text-3xl font-bold text-brand-900">Fornecedores</h1>
           <p className="text-sm text-gray-500 mt-1">Cadastro de fornecedores de insumos</p>
         </div>
         <Link
           href="/fornecedores/novo"
-          className="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="bg-brand-900 hover:bg-brand-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           + Novo Fornecedor
         </Link>
@@ -84,7 +91,7 @@ export default function FornecedoresPage() {
           <p className="text-sm mt-1">Clique em &quot;Novo Fornecedor&quot; para cadastrar</p>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-white border border-[#e7e1cf] rounded-2xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
