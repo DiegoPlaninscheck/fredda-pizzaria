@@ -1,0 +1,53 @@
+# Regras de alerta avaliadas pelo Prometheus. Ficam visíveis em Prometheus → Alerts
+# e no painel "Alertas ativos" do dashboard do Grafana.
+groups:
+  - name: disponibilidade
+    rules:
+      - alert: ServicoFora
+        expr: up{job=~"app|ia|node"} == 0
+        for: 2m
+        labels:
+          severidade: critica
+        annotations:
+          resumo: "{{ $labels.job }} não responde à coleta de métricas há mais de 2 minutos"
+
+  - name: infraestrutura
+    rules:
+      - alert: DiscoQuaseCheio
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) > 0.85
+        for: 10m
+        labels:
+          severidade: alta
+        annotations:
+          resumo: "Disco da VPS acima de 85% ({{ $value | humanizePercentage }})"
+
+      - alert: MemoriaAlta
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 0.90
+        for: 10m
+        labels:
+          severidade: alta
+        annotations:
+          resumo: "Memória da VPS acima de 90% ({{ $value | humanizePercentage }})"
+
+  - name: negocio
+    rules:
+      - alert: ErrosNaIADoChatbot
+        expr: increase(fredda_chatbot_ia_erros_total[15m]) > 3
+        labels:
+          severidade: media
+        annotations:
+          resumo: "Mais de 3 falhas da IA do chatbot em 15 minutos (clientes caindo no menu)"
+
+      - alert: PrevisaoIndisponivel
+        expr: increase(fredda_previsao_requisicoes_total{resultado!="ok"}[30m]) > 0
+        labels:
+          severidade: media
+        annotations:
+          resumo: "Chamadas ao microsserviço de previsão falhando ({{ $labels.resultado }})"
+
+      - alert: PedidosParados
+        expr: fredda_pedidos_pendentes > 0 and min_over_time(fredda_pedidos_pendentes[30m]) > 0
+        labels:
+          severidade: media
+        annotations:
+          resumo: "Há pedidos aguardando confirmação há mais de 30 minutos"

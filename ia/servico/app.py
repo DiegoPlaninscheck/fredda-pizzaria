@@ -27,6 +27,8 @@ import joblib
 import pandas as pd
 from fastapi import Depends, FastAPI, HTTPException, Security
 from fastapi.security import APIKeyHeader
+from prometheus_client import Counter, Histogram, Info
+from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, Field
 
 from previsao import dados
@@ -48,6 +50,20 @@ class Estado:
 
 estado = Estado()
 
+# ─── Métricas (Prometheus, rota /metrics só na rede interna do compose) ─────────
+
+PREVISOES = Counter("fredda_ia_previsoes_total", "Previsões atendidas, por modelo ativo", ["modelo"])
+TREINOS = Counter("fredda_ia_treinos_total", "Treinamentos solicitados, por resultado", ["resultado"])
+DURACAO_TREINO = Histogram("fredda_ia_treino_duracao_seconds", "Duração dos treinamentos",
+                           buckets=(5, 15, 30, 60, 120, 300, 600))
+MODELO_INFO = Info("fredda_ia_modelo", "Modelo de previsão carregado no serviço")
+
+
+def _atualizar_info_modelo() -> None:
+    meta = estado.previsor.metadados if estado.previsor else {}
+    MODELO_INFO.info({"modelo_ativo": str(meta.get("modelo_ativo") or ""),
+                      "treinado_em": str(meta.get("treinado_em") or "")})
+
 
 def carregar_modelo() -> None:
     if ARQ_MODELO.exists():
@@ -59,6 +75,7 @@ def carregar_modelo() -> None:
                                    metadados={"modelo_ativo": "baseline_media_movel_4",
                                               "treinado_em": None})
         log.warning("Nenhum modelo em %s; usando só o baseline.", ARQ_MODELO)
+    _atualizar_info_modelo()
 
 
 @asynccontextmanager
@@ -69,6 +86,10 @@ async def ciclo_de_vida(_app: FastAPI):
 
 app = FastAPI(title="Fredda Pizzaria — Previsão de demanda", version="1.0.0",
               lifespan=ciclo_de_vida)
+
+# Latência e contagem de requisições HTTP por rota; /saude (healthcheck) fica de fora
+Instrumentator(excluded_handlers=["/metrics", "/saude"]).instrument(app).expose(
+    app, include_in_schema=False)
 
 cabecalho_chave = APIKeyHeader(name="X-API-Key", auto_error=False)
 
@@ -162,6 +183,7 @@ def previsao(pedido: PedidoPrevisao):
                      metodo=r.metodo)
         for r in resultado.itertuples()
     ]
+    PREVISOES.labels(modelo=previsor.metadados.get("modelo_ativo", "")).inc()
     return RespostaPrevisao(
         modelo_ativo=previsor.metadados.get("modelo_ativo", ""),
         nivel_confianca=getattr(previsor, "nivel_intervalo", 0.8),
@@ -175,17 +197,24 @@ def previsao(pedido: PedidoPrevisao):
 def treinar(pedido: PedidoTreino | None = None):
     pedido = pedido or PedidoTreino()
     if not estado.trava.acquire(blocking=False):
+        TREINOS.labels(resultado="ocupado").inc()
         raise HTTPException(409, "Já existe um treinamento em andamento.")
     try:
-        series = _series(None)
-        if series.empty:
-            raise HTTPException(422, "Não há vendas no banco para treinar.")
-        previsor, _ = treinar_previsor(series, iteracoes=pedido.iteracoes)
-        ARQ_MODELO.parent.mkdir(parents=True, exist_ok=True)
-        joblib.dump(previsor, ARQ_MODELO)
-        ARQ_METADADOS.write_text(json.dumps(previsor.metadados, indent=2, ensure_ascii=False),
-                                 encoding="utf-8")
+        with DURACAO_TREINO.time():
+            series = _series(None)
+            if series.empty:
+                raise HTTPException(422, "Não há vendas no banco para treinar.")
+            previsor, _ = treinar_previsor(series, iteracoes=pedido.iteracoes)
+            ARQ_MODELO.parent.mkdir(parents=True, exist_ok=True)
+            joblib.dump(previsor, ARQ_MODELO)
+            ARQ_METADADOS.write_text(json.dumps(previsor.metadados, indent=2, ensure_ascii=False),
+                                     encoding="utf-8")
         estado.previsor = previsor
+        _atualizar_info_modelo()
+        TREINOS.labels(resultado="ok").inc()
         return previsor.metadados
+    except Exception:
+        TREINOS.labels(resultado="erro").inc()
+        raise
     finally:
         estado.trava.release()

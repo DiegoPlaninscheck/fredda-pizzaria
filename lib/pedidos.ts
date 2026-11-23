@@ -2,6 +2,13 @@ import { Prisma, StatusPedido, TipoEntrega } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { baixarEstoqueReceita, EstoqueInsuficienteError, reporEstoqueReceita } from '@/lib/estoque'
 import { STATUS_PEDIDO_LABEL } from '@/lib/pedidos-ui'
+import { metricas } from '@/lib/metricas'
+
+/** Conta o pedido no status em que ficou (só depois que a transação foi confirmada). */
+function registrarMetrica<T extends { canal: string; status: string }>(pedido: T): T {
+  metricas.pedidos.inc({ canal: pedido.canal, status: pedido.status })
+  return pedido
+}
 
 export class PedidoError extends Error {}
 
@@ -60,7 +67,7 @@ export async function criarPedido(dados: NovoPedido): Promise<PedidoCompleto> {
   )
 
   try {
-    return await prisma.$transaction(async (tx) => {
+    const pedido = await prisma.$transaction(async (tx) => {
       for (const item of itens) {
         await baixarEstoqueReceita(tx, item.receitaId, item.quantidade)
       }
@@ -79,6 +86,7 @@ export async function criarPedido(dados: NovoPedido): Promise<PedidoCompleto> {
         include: incluirPedido,
       })
     })
+    return registrarMetrica(pedido)
   } catch (e) {
     if (e instanceof EstoqueInsuficienteError) throw new PedidoError(e.message)
     throw e
@@ -110,7 +118,7 @@ async function transicionar(
 
 /** PENDENTE → CONFIRMADO: gera uma venda por item (o estoque já foi reservado na criação). */
 export async function confirmarPedido(pedidoId: number, usuarioId: string) {
-  return prisma.$transaction(async (tx) => {
+  return registrarMetrica(await prisma.$transaction(async (tx) => {
     await transicionar(tx, pedidoId, ['PENDENTE'], 'CONFIRMADO')
     const pedido = await tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, include: incluirPedido })
 
@@ -132,19 +140,19 @@ export async function confirmarPedido(pedidoId: number, usuarioId: string) {
       })
     }
     return pedido
-  })
+  }))
 }
 
 /** CONFIRMADO → ENTREGUE: marca as vendas do pedido como entregues. */
 export async function entregarPedido(pedidoId: number) {
-  return prisma.$transaction(async (tx) => {
+  return registrarMetrica(await prisma.$transaction(async (tx) => {
     await transicionar(tx, pedidoId, ['CONFIRMADO'], 'ENTREGUE')
     await tx.venda.updateMany({
       where: { pedidoId },
       data: { entregue: true, dataEntrega: new Date() },
     })
     return tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, include: incluirPedido })
-  })
+  }))
 }
 
 /**
@@ -152,7 +160,7 @@ export async function entregarPedido(pedidoId: number) {
  * geradas na confirmação. `apenasPendente` é usado quando quem cancela é o cliente.
  */
 export async function cancelarPedido(pedidoId: number, { apenasPendente = false } = {}) {
-  return prisma.$transaction(async (tx) => {
+  return registrarMetrica(await prisma.$transaction(async (tx) => {
     await transicionar(tx, pedidoId, apenasPendente ? ['PENDENTE'] : ['PENDENTE', 'CONFIRMADO'], 'CANCELADO')
     const pedido = await tx.pedido.findUniqueOrThrow({ where: { id: pedidoId }, include: incluirPedido })
 
@@ -161,7 +169,7 @@ export async function cancelarPedido(pedidoId: number, { apenasPendente = false 
     }
     await tx.venda.deleteMany({ where: { pedidoId } })
     return pedido
-  })
+  }))
 }
 
 export const ROTULO_STATUS = STATUS_PEDIDO_LABEL as Record<StatusPedido, string>

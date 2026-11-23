@@ -8,6 +8,9 @@ import {
   registrarFalhasDeEntrega,
 } from '@/lib/whatsapp'
 import { atenderMensagem } from '@/lib/chatbot/atendimento'
+import { metricas } from '@/lib/metricas'
+
+const contar = (resultado: string) => metricas.webhookRequisicoes.inc({ provedor: 'meta', resultado })
 
 // Rota pública (fora do middleware): quem autentica é a assinatura da Meta.
 export const dynamic = 'force-dynamic'
@@ -30,6 +33,7 @@ export async function POST(req: Request) {
   const corpoBruto = await req.text()
 
   if (!assinaturaValida(corpoBruto, req.headers.get('x-hub-signature-256'))) {
+    contar('assinatura_invalida')
     return NextResponse.json({ error: 'Assinatura inválida' }, { status: 401 })
   }
 
@@ -37,8 +41,10 @@ export async function POST(req: Request) {
   try {
     payload = JSON.parse(corpoBruto)
   } catch {
+    contar('json_invalido')
     return NextResponse.json({ error: 'JSON inválido' }, { status: 400 })
   }
+  contar('aceito')
 
   registrarFalhasDeEntrega(payload)
 

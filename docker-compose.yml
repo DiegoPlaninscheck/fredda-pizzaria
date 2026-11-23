@@ -1,8 +1,20 @@
+# Nome fixo do projeto: os volumes (fredda-pizzaria_mysql_data etc.) são os mesmos
+# seja qual for a pasta de onde o compose roda (no deploy, a pasta de trabalho do runner).
+name: fredda-pizzaria
+
+# Rotação dos logs dos containers (o padrão do Docker cresce sem limite)
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   db:
     image: mysql:8.0
     container_name: fredda_db
     restart: unless-stopped
+    logging: *logging
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-fredda_pizzaria}
@@ -18,11 +30,15 @@ services:
       start_period: 30s
 
   app:
+    # Em produção a imagem vem pronta do GHCR (publicada pelo pipeline); localmente,
+    # `docker compose up --build` gera a mesma imagem a partir do Dockerfile.
+    image: ${IMAGE_REGISTRY:-ghcr.io/diegoplaninscheck}/fredda-pizzaria-app:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
     container_name: fredda_app
     restart: unless-stopped
+    logging: *logging
     environment:
       DATABASE_URL: mysql://${MYSQL_USER:-fredda}:${MYSQL_PASSWORD:-fredda123}@db:3306/${MYSQL_DATABASE:-fredda_pizzaria}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
@@ -43,6 +59,8 @@ services:
       # Microsserviço de previsão de demanda (rede interna do compose)
       IA_URL: http://ia:8000
       IA_API_KEY: ${IA_API_KEY:-}
+      # Token exigido pelo /api/metrics (coletado pelo Prometheus)
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
     # Só em 127.0.0.1: em produção o acesso externo passa pelo Caddy (HTTPS).
     # Publicar em 0.0.0.0 expõe a porta mesmo com o ufw bloqueando (o Docker ignora o ufw).
     ports:
@@ -54,11 +72,13 @@ services:
   # Previsão de demanda (Python/FastAPI). Só é acessível pela rede interna do compose;
   # o app chama em http://ia:8000 com o cabeçalho X-API-Key.
   ia:
+    image: ${IMAGE_REGISTRY:-ghcr.io/diegoplaninscheck}/fredda-pizzaria-ia:${IMAGE_TAG:-latest}
     build:
       context: ./ia
       dockerfile: Dockerfile
     container_name: fredda_ia
     restart: unless-stopped
+    logging: *logging
     environment:
       DATABASE_URL: mysql://${MYSQL_USER:-fredda}:${MYSQL_PASSWORD:-fredda123}@db:3306/${MYSQL_DATABASE:-fredda_pizzaria}
       IA_API_KEY: ${IA_API_KEY:-}
@@ -87,8 +107,82 @@ services:
     depends_on:
       - app
 
+  # ─── Observabilidade (perfil "observabilidade") ───────────────────────────────
+  # docker compose --profile observabilidade up -d
+  # Prometheus coleta as métricas do app, do serviço de IA e da VPS; o Grafana mostra o
+  # dashboard provisionado em observabilidade/grafana. Nada disso fica exposto na internet:
+  # o Grafana escuta só em 127.0.0.1:3001 e é publicado pelo Caddy, com login.
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: fredda_prometheus
+    restart: unless-stopped
+    profiles: ["observabilidade"]
+    logging: *logging
+    mem_limit: 256m
+    environment:
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+    # O Prometheus não lê variáveis de ambiente no arquivo de configuração:
+    # o token do /api/metrics é gravado num arquivo que o scrape do app usa.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        printf %s "$$METRICS_TOKEN" > /prometheus/.metrics_token &&
+        exec /bin/prometheus
+        --config.file=/etc/prometheus/fredda/prometheus.yml
+        --storage.tsdb.path=/prometheus
+        --storage.tsdb.retention.time=15d
+        --storage.tsdb.retention.size=1GB
+    volumes:
+      # Pasta inteira (não arquivos soltos): o checkout do deploy substitui os arquivos,
+      # e um bind mount de arquivo continuaria apontando para a versão antiga.
+      - ./observabilidade:/etc/prometheus/fredda:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      - app
+      - ia
+
+  grafana:
+    image: grafana/grafana:11.3.1
+    container_name: fredda_grafana
+    restart: unless-stopped
+    profiles: ["observabilidade"]
+    logging: *logging
+    mem_limit: 192m
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-}  # obrigatória em produção (o deploy confere)
+      GF_SERVER_ROOT_URL: ${GRAFANA_URL:-http://localhost:3001}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    ports:
+      - "127.0.0.1:3001:3000"
+    volumes:
+      - ./observabilidade/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observabilidade/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+  # Métricas da VPS (CPU, memória, disco, rede)
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: fredda_node_exporter
+    restart: unless-stopped
+    profiles: ["observabilidade"]
+    logging: *logging
+    mem_limit: 32m
+    pid: host
+    command:
+      - --path.rootfs=/host
+    volumes:
+      - /:/host:ro,rslave
+
 volumes:
   mysql_data:
   ia_modelos:
   caddy_data:
   caddy_config:
+  prometheus_data:
+  grafana_data:

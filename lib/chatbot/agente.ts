@@ -4,6 +4,7 @@ import { Conversa, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { SYSTEM_PROMPT } from '@/lib/chatbot/prompt'
 import { criarFerramentas } from '@/lib/chatbot/ferramentas'
+import { metricas } from '@/lib/metricas'
 
 // Plano B do atendimento: só é chamada quando o cliente escreve algo que o
 // fluxo guiado (lib/chatbot/fluxo.ts) não entende.
@@ -64,6 +65,7 @@ export async function responderComIA(params: {
   // Impede que o cliente "falsifique" o bloco de contexto gerado pelo sistema
   const textoCliente = params.texto.replace(/<\/?contexto>/gi, '')
   const pedidosAntes = await prisma.pedido.count({ where: { conversaId: conversa.id } })
+  const fimDoTimer = metricas.chatbotIaDuracao.startTimer()
 
   try {
     const runner = anthropic().beta.messages.toolRunner({
@@ -89,6 +91,7 @@ export async function responderComIA(params: {
     })
 
     const final = await runner.runUntilDone()
+    fimDoTimer()
     console.info(
       `[chatbot] IA conversa=${conversa.id} stop=${final.stop_reason} ` +
       `in=${final.usage.input_tokens} cache_read=${final.usage.cache_read_input_tokens ?? 0} out=${final.usage.output_tokens}`
@@ -118,8 +121,10 @@ export async function responderComIA(params: {
     return { texto, criouPedido: pedidosDepois > pedidosAntes, chamouAtendente: atual.status === 'HUMANO' }
   } catch (e) {
     if (e instanceof Anthropic.APIError) {
+      metricas.chatbotIaErros.inc({ tipo: 'api' })
       console.error(`[chatbot] erro da API da Anthropic (${e.status}):`, e.message)
     } else {
+      metricas.chatbotIaErros.inc({ tipo: 'interno' })
       console.error('[chatbot] erro ao gerar resposta da IA:', e)
     }
     return null
