@@ -161,8 +161,9 @@ A área autenticada foi adaptada para uso em celular:
 | Containerização | Docker + Docker Compose |
 | Chatbot de pedidos | [Claude API](https://docs.anthropic.com) (`@anthropic-ai/sdk`, Claude Sonnet 5.5) + WhatsApp Cloud API |
 | IA / Previsão | Python (FastAPI + scikit-learn) |
+| Proxy HTTPS | [Caddy](https://caddyserver.com/) (certificado automático) |
 | Hospedagem | VPS (Hostinger) |
-| CI/CD | GitHub Actions |
+| CI/CD | GitHub Actions *(planejado — Sprint 8)* |
 
 ---
 
@@ -172,11 +173,12 @@ A área autenticada foi adaptada para uso em celular:
 
 - Node.js 20+
 - Docker e Docker Compose
+- Python 3.12+ *(opcional — só para rodar a previsão de demanda fora do Docker, veja o passo 6)*
 
 ### 1. Clone o repositório
 
 ```bash
-git clone https://github.com/diegoplaninscheck/fredda-pizzaria.git
+git clone https://github.com/DiegoPlaninscheck/fredda-pizzaria.git
 cd fredda-pizzaria
 ```
 
@@ -195,8 +197,10 @@ openssl rand -base64 32   # cole o resultado em NEXTAUTH_SECRET
 ### 3. Suba o banco com Docker
 
 ```bash
-docker compose up -d db
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db
 ```
+
+O `docker-compose.yml` principal não publica a porta do MySQL (na VPS o banco fica só na rede interna). O [`docker-compose.dev.yml`](docker-compose.dev.yml) acrescenta `127.0.0.1:3306`, para o Prisma e o `npm run dev` acessarem o banco a partir da sua máquina com a `DATABASE_URL` padrão do `.env.example`.
 
 ### 4. Instale as dependências e rode as migrations
 
@@ -218,6 +222,19 @@ Acesse em [http://localhost:3000](http://localhost:3000)
 
 **Perfis:** `OPERADOR` faz a operação do dia a dia (movimentações, ordens, vendas, pedidos). Excluir/inativar fornecedores, categorias, insumos e receitas e cancelar vendas é exclusivo do `ADMIN`.
 
+### 6. (Opcional) Previsão de demanda
+
+Sem o microsserviço `ia` rodando, o sistema funciona normalmente, mas a tela de **Planejamento** avisa que não há previsão e o plano é feito à mão. Para usar a previsão em desenvolvimento, defina `IA_API_KEY` no `.env` e suba o serviço na porta 8000 (a mesma do `IA_URL` padrão), conforme o [`ia/README.md`](ia/README.md#microsserviço-fastapi):
+
+```bash
+cd ia
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn servico.app:app --port 8000
+```
+
+Use no terminal do `uvicorn` a mesma `IA_API_KEY` e `DATABASE_URL` do `.env`.
+
 ---
 
 ## 🐳 Rodar com Docker (ambiente completo)
@@ -236,12 +253,15 @@ Para expor o app com HTTPS (necessário para o webhook do WhatsApp), suba també
 
 ### Deploy em produção (VPS)
 
-O projeto está preparado para rodar em qualquer VPS com Docker (testado na Hostinger):
+O projeto está preparado para rodar em qualquer VPS com Docker (testado na Hostinger). O app fica publicado só em `127.0.0.1:3000` e o acesso externo passa pelo Caddy, com HTTPS:
 
-1. Clone o repositório no servidor e configure o `.env` com senhas fortes e `NEXTAUTH_URL` apontando para o IP/domínio público
-2. `docker compose up --build -d` — builda a imagem, sobe o MySQL e aplica as migrations sozinho
-3. Libere a porta 3000 no firewall (`ufw allow 3000/tcp`)
-4. A aplicação sobrevive a reboot do servidor (`restart: unless-stopped` no `docker-compose.yml`) — não precisa iniciar nada manualmente depois do primeiro deploy
+1. Aponte um domínio (registro A) para o IP da VPS.
+2. Clone o repositório no servidor e configure o `.env`: senhas fortes do MySQL, `NEXTAUTH_SECRET`, `DOMINIO` com o domínio, `NEXTAUTH_URL="https://<seu domínio>"` e `IA_API_KEY`.
+3. Libere as portas do Caddy no firewall: `ufw allow 80/tcp && ufw allow 443/tcp`. A porta 3000 **não** precisa (nem deve) ser aberta.
+4. `docker compose --profile https up --build -d`: builda as imagens, sobe MySQL, app, `ia` e Caddy, aplica as migrations e emite o certificado sozinho.
+5. Treine o primeiro modelo de previsão (comando no [`ia/README.md`](ia/README.md#microsserviço-fastapi)).
+
+Todos os serviços usam `restart: unless-stopped`, então a aplicação volta sozinha após um reboot do servidor. **Não** use o `docker-compose.dev.yml` na VPS: ele expõe a porta do banco.
 
 > A imagem gera o Prisma Client com `binaryTargets = ["native", "linux-musl-openssl-3.0.x"]` no `schema.prisma`, necessário para rodar corretamente em containers Alpine.
 
@@ -293,38 +313,54 @@ fredda-pizzaria/
 │   │   └── ordens/                 # GET, POST, PATCH (conclusão repõe estoque de produto pronto)
 │   │       └── [id]/etapas/[etapaId]/
 │   │           └── condicoes/      # Registro de temperatura, umidade, observações
-│   ├── layout.tsx                  # Layout raiz com SessionProvider
-│   └── providers.tsx               # Client providers
+│   ├── page.tsx                    # Landing page pública (cardápio, WhatsApp)
+│   ├── layout.tsx                  # Layout raiz: fontes, favicon e providers
+│   └── providers.tsx               # Client providers (SessionProvider)
 ├── components/
 │   ├── Sidebar.tsx                 # Navegação lateral
-│   └── Transcricao.tsx             # Conversa do WhatsApp em balões
+│   ├── Transcricao.tsx             # Conversa do WhatsApp em balões
+│   ├── dashboard/                  # Gráfico de faturamento semanal (recharts)
+│   └── ui/                         # Button, Card, Badge, PageHeader, ConfirmDialog, Toast
 ├── lib/
 │   ├── auth.ts                     # authOptions (NextAuth config)
 │   ├── api-auth.ts                 # exigirSessao(role?) usado em todas as rotas de API
+│   ├── constantes.ts               # Formas de pagamento e limites de pedido
 │   ├── estoque.ts                  # Baixa atômica de estoque (sem estoque negativo em acessos simultâneos)
 │   ├── ordens.ts                   # Concluir/cancelar ordem (reposição e estorno de insumos)
 │   ├── ia.ts                       # Cliente do microsserviço de previsão (IA_URL + X-API-Key)
 │   ├── planejamento.ts             # Sugestão de produção e planejado x realizado
 │   ├── semanas.ts                  # Semanas de segunda a domingo no horário de Brasília
 │   ├── pedidos.ts                  # Criar/confirmar/entregar/cancelar pedidos
+│   ├── pedidos-ui.ts               # Rótulos de status para as telas (sem Prisma, usável no cliente)
 │   ├── whatsapp.ts                 # Envio, assinatura do webhook e fila por cliente
 │   ├── twilio.ts                   # Adaptador Twilio: envio, opções numeradas e assinatura
-│   ├── chatbot/                    # Atendimento: fluxo guiado (fluxo.ts), IA plano B (agente.ts),
-│   │                               # orquestração (atendimento.ts), prompt, ferramentas e avisos
+│   ├── chatbot/
+│   │   ├── atendimento.ts          # Orquestração: decide entre fluxo guiado e IA
+│   │   ├── fluxo.ts                # Menu guiado (etapas, botões, listas, carrinho)
+│   │   ├── agente.ts               # IA plano B (Claude) com ferramentas
+│   │   ├── ferramentas.ts          # Regras de negócio expostas à IA
+│   │   ├── prompt.ts               # System prompt (estático, para prompt caching)
+│   │   ├── mensagens.ts            # Textos e limites das mensagens interativas
+│   │   ├── conversas.ts            # Histórico e estado das conversas
+│   │   └── notificar.ts            # Avisos de status ao cliente (janela de 24h)
 │   └── prisma.ts                   # Singleton do PrismaClient
 ├── prisma/
-│   ├── schema.prisma               # Models: User, Fornecedor, Categoria, Insumo, MovimentacaoEstoque
+│   ├── schema.prisma               # 20 models (resumo na seção abaixo)
 │   ├── migrations/                 # Histórico de migrations
 │   └── seed.ts                     # Dados iniciais
-├── ia/                           # Previsão de demanda em Python (ver ia/README.md)
-│   ├── previsao/                 # Preparação, análise, modelos e CLI
-│   ├── servico/                  # Microsserviço FastAPI (/previsao, /treinar)
+├── ia/                             # Previsão de demanda em Python (ver ia/README.md)
+│   ├── previsao/                   # Preparação, análise, modelos e CLI
+│   ├── servico/                    # Microsserviço FastAPI (/previsao, /treinar)
 │   └── tests/
+├── public/
+│   ├── fredda_pizzaria.png         # Logo / favicon
+│   └── marketing/                  # Artes usadas na landing page
 ├── types/
 │   └── next-auth.d.ts              # Extensão de tipos (id, role na sessão)
 ├── middleware.ts                   # Proteção de rotas autenticadas
 ├── Caddyfile                       # Proxy HTTPS (perfil "https" do docker-compose)
-├── docker-compose.yml
+├── docker-compose.yml              # db, app, ia e caddy (perfil "https")
+├── docker-compose.dev.yml          # Dev local: publica o MySQL em 127.0.0.1:3306
 ├── Dockerfile                      # Build multi-stage + Prisma Client para Alpine (musl)
 ├── docker-entrypoint.sh            # Aplica migrations automaticamente antes de iniciar o server
 ├── .dockerignore
@@ -335,7 +371,9 @@ fredda-pizzaria/
 
 ## 🗄️ Schema do banco de dados
 
-```prisma
+Resumo dos models e campos principais. A definição completa está em [`prisma/schema.prisma`](prisma/schema.prisma).
+
+```text
 User                 — id, nome, email, senha (bcrypt), role (ADMIN | OPERADOR), ativo
 Fornecedor           — id, nome, cnpj (só dígitos, validado), telefone, email, endereco, ativo
 Categoria            — id, nome (unique), descricao, ativo
@@ -375,8 +413,6 @@ PlanoProducao        — id, semana (segunda-feira, única), modeloAtivo, observ
 PlanoProducaoItem    — id, planoId, receitaId, previsao, limiteInferior, limiteSuperior, metodo,
                        estoqueInicial (projetado), sugerido, planejado
 ```
-
-> **Atenção:** após clonar o repositório, execute `npx prisma migrate dev` para aplicar todas as migrations.
 
 ---
 
@@ -442,8 +478,8 @@ PlanoProducaoItem    — id, planoId, receitaId, previsao, limiteInferior, limit
 ## 🔗 Links úteis
 
 - [Jira — Gerenciamento do projeto](https://diegoplanichek.atlassian.net)
-- [Documentação da API](#) *(em breve)*
-- [Ambiente de produção](#) *(em breve)*
+- [API do microsserviço de previsão](ia/README.md#microsserviço-fastapi) (documentação interativa em `/docs` com o serviço rodando)
+- Ambiente de produção *(Sprint 8)*
 
 ---
 

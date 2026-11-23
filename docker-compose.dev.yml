@@ -1,0 +1,8 @@
+# Desenvolvimento local: publica o MySQL em 127.0.0.1:3306 para o `npm run dev`
+# e o Prisma rodarem fora do Docker. Use junto com o arquivo principal:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db
+# Não use na VPS: lá o banco fica só na rede interna do compose.
+services:
+  db:
+    ports:
+      - "127.0.0.1:3306:3306"
