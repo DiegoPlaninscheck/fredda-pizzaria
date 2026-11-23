@@ -15,6 +15,17 @@ Toda mudança chega à `main` por pull request e passa pelas verificações abai
 | Segurança (SAST) | **CodeQL** (`security-and-quality`) | workflow `codeql.yml` | Injeção, XSS, vazamento de dados, uso inseguro de APIs (TypeScript e Python) |
 | Dependências | **Dependabot** | semanal | Versões desatualizadas ou com vulnerabilidade conhecida (npm, pip, Docker, Actions) |
 
+### Segurança da cadeia de suprimentos no pipeline
+
+- Actions de terceiros (Docker, SonarSource) fixadas pelo **SHA do commit**, não pela tag, que pode ser movida.
+- `npm ci --ignore-scripts`: nenhum script de instalação de pacote roda no CI; o Prisma Client é gerado explicitamente.
+- Binários chamados de `node_modules/.bin` em vez de `npx`, que poderia baixar pacotes na hora.
+- Python instalado de `ia/requirements-dev.lock`, com **versões e hashes travados** (`--require-hashes`) e só pacotes pré-compilados (`--only-binary :all:`).
+
+### Quality gate
+
+O SonarCloud usa o gate padrão (*Sonar way*) no código novo: nota A em segurança, confiabilidade e manutenibilidade, todos os *security hotspots* revisados, duplicação abaixo de 3% e **cobertura de pelo menos 80%**. Enquanto o app Next.js não tiver testes, a condição de cobertura reprova o gate; ele é informativo e não bloqueia o deploy (`sonar.qualitygate.wait=false`).
+
 - **SonarCloud:** https://sonarcloud.io/project/overview?id=DiegoPlaninscheck_fredda-pizzaria
 - **CodeQL:** aba *Security → Code scanning* do repositório
 

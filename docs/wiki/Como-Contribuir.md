@@ -40,6 +40,7 @@ O passo a passo completo (incluindo o serviço de IA e o ambiente 100% Docker) e
 | Alterar o banco | `prisma/schema.prisma` → `npx prisma migrate dev --name <descricao>` (commite a migration) |
 | Mudar o atendimento do WhatsApp | `lib/chatbot/fluxo.ts` (menu) ou `lib/chatbot/prompt.ts` e `ferramentas.ts` (IA) |
 | Mudar a previsão de demanda | `ia/previsao/` + testes em `ia/tests/` |
+| Adicionar ou atualizar uma dependência Python | `ia/requirements*.txt` e regenerar o lock usado pelo CI: `uv pip compile ia/requirements-dev.txt --python-platform x86_64-manylinux_2_28 --python-version 3.12 --generate-hashes --no-header -o ia/requirements-dev.lock` |
 | Adicionar uma métrica | `lib/metricas.ts` e um painel em `observabilidade/grafana/dashboards/` |
 | Atualizar esta documentação | `docs/wiki/*.md` (a Wiki é publicada a partir daqui) |
 
