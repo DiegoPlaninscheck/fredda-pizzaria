@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { enfileirar, enviarMensagens } from '@/lib/whatsapp'
 import { assinaturaTwilioValida, extrairMensagemTwilio } from '@/lib/twilio'
 import { atenderMensagem } from '@/lib/chatbot/atendimento'
+import { metricas } from '@/lib/metricas'
+
+const contar = (resultado: string) => metricas.webhookRequisicoes.inc({ provedor: 'twilio', resultado })
 
 // Rota pública (fora do middleware): quem autentica é a assinatura da Twilio.
 export const dynamic = 'force-dynamic'
@@ -25,8 +28,10 @@ export async function POST(req: Request) {
   const params = Object.fromEntries(new URLSearchParams(await req.text()))
 
   if (!assinaturaTwilioValida(urlPublica(req), params, req.headers.get('x-twilio-signature'))) {
+    contar('assinatura_invalida')
     return NextResponse.json({ error: 'Assinatura inválida' }, { status: 401 })
   }
+  contar('aceito')
 
   const mensagem = extrairMensagemTwilio(params)
   if (mensagem) {

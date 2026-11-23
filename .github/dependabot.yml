@@ -1,0 +1,30 @@
+# Atualizações automáticas de dependências (abre PRs semanais, que passam pelo CI).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dependencias-menores:
+        update-types: [minor, patch]
+
+  - package-ecosystem: pip
+    directory: /ia
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dependencias-menores:
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directories: [/, /ia]
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

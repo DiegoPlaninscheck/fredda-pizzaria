@@ -2,6 +2,7 @@
  * Cliente do microsserviço de previsão de demanda (pasta ia/, FastAPI).
  * Configurado por IA_URL e IA_API_KEY; a chave vai no cabeçalho X-API-Key e nunca chega ao navegador.
  */
+import { metricas } from '@/lib/metricas'
 
 export interface ItemPrevisaoIA {
   semana: string
@@ -25,7 +26,10 @@ export class IAIndisponivelError extends Error {}
 async function chamar<T>(caminho: string, init: RequestInit, timeoutMs: number): Promise<T> {
   const url = process.env.IA_URL
   const chave = process.env.IA_API_KEY
+  const contar = (resultado: string) => metricas.previsaoRequisicoes.inc({ rota: caminho, resultado })
+
   if (!url || !chave) {
+    contar('nao_configurado')
     throw new IAIndisponivelError('Microsserviço de previsão não configurado (defina IA_URL e IA_API_KEY).')
   }
 
@@ -38,14 +42,17 @@ async function chamar<T>(caminho: string, init: RequestInit, timeoutMs: number):
       signal: AbortSignal.timeout(timeoutMs),
     })
   } catch {
+    contar('sem_resposta')
     throw new IAIndisponivelError('O microsserviço de previsão não respondeu.')
   }
 
   if (!res.ok) {
+    contar(`http_${res.status}`)
     const corpo = await res.json().catch(() => null)
     const detalhe = typeof corpo?.detail === 'string' ? corpo.detail : `HTTP ${res.status}`
     throw new IAIndisponivelError(`Erro no microsserviço de previsão: ${detalhe}`)
   }
+  contar('ok')
   return res.json() as Promise<T>
 }
 

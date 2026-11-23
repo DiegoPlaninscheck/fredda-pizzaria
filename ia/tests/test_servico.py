@@ -83,6 +83,15 @@ def test_treinar_le_do_banco_e_troca_o_modelo(cliente, vendas, monkeypatch):
     assert len(r.json()["previsoes"]) == vendas["sabor"].nunique()
 
 
+def test_metricas_expostas_para_o_prometheus(cliente, vendas):
+    cliente.post("/previsao", headers={"X-API-Key": CHAVE}, json=_corpo(vendas, semanas=1))
+    r = cliente.get("/metrics")
+    assert r.status_code == 200
+    assert "fredda_ia_previsoes_total" in r.text
+    assert 'fredda_ia_modelo_info{modelo_ativo="baseline_media_movel_4"' in r.text
+    assert 'handler="/previsao"' in r.text
+
+
 def test_banco_indisponivel_responde_503(cliente, monkeypatch):
     def falha():
         raise RuntimeError("sem banco")

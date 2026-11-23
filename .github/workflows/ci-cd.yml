@@ -1,0 +1,236 @@
+# Pipeline de integração e entrega contínuas da Fredda Pizzaria.
+#
+#   pull request ──► web + ia (lint, tipos, build, testes) ──► sonar
+#   push na main ──► web + ia ──► sonar
+#                          └────► imagens (GHCR) ──► deploy (runner self-hosted na VPS) ──► smoke test
+#                ──► wiki (publica docs/wiki na Wiki do GitHub)
+#
+# Detalhes e decisões: docs/wiki/Deploy-e-Infraestrutura.md
+name: CI/CD
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  web:
+    name: App Next.js (lint, tipos e build)
+    runs-on: ubuntu-latest
+    env:
+      # Valores fictícios: o build não acessa o banco
+      DATABASE_URL: mysql://ci:ci@localhost:3306/ci
+      NEXTAUTH_SECRET: segredo-somente-para-o-build-do-ci
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Valida o schema do Prisma
+        run: npx prisma validate && npx prisma generate
+      - name: Lint
+        run: npm run lint
+      - name: Checagem de tipos
+        run: npx tsc --noEmit
+      - uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('app/**', 'components/**', 'lib/**') }}
+          restore-keys: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+      - name: Build de produção
+        run: npm run build
+
+  ia:
+    name: Previsão de demanda (testes)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ia
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ia/requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      - name: Testes com cobertura
+        run: pytest --cov=previsao --cov=servico --cov-report=xml:coverage.xml --cov-report=term
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cobertura-ia
+          path: ia/coverage.xml
+          retention-days: 7
+
+  sonar:
+    name: Análise estática (SonarCloud)
+    needs: [web, ia]
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # histórico completo: o Sonar usa o blame para o "new code"
+      - uses: actions/download-artifact@v4
+        with:
+          name: cobertura-ia
+          path: ia
+      - name: SonarCloud
+        # PRs de fork não recebem secrets: a análise é pulada em vez de falhar
+        if: env.SONAR_TOKEN != ''
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_HOST_URL: https://sonarcloud.io
+
+  imagens:
+    name: Imagens Docker (GHCR)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [web, ia]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - nome: app
+            contexto: .
+          - nome: ia
+            contexto: ./ia
+    steps:
+      - uses: actions/checkout@v4
+      - name: Nome da imagem (o GHCR exige minúsculas)
+        id: img
+        run: echo "nome=ghcr.io/${OWNER,,}/fredda-pizzaria-${{ matrix.nome }}" >> "$GITHUB_OUTPUT"
+        env:
+          OWNER: ${{ github.repository_owner }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.contexto }}
+          push: true
+          tags: |
+            ${{ steps.img.outputs.nome }}:${{ github.sha }}
+            ${{ steps.img.outputs.nome }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.nome }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.nome }}
+
+  deploy:
+    name: Deploy em produção (VPS)
+    needs: [imagens]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Runner instalado na própria VPS: ele busca o job no GitHub (conexão de saída),
+    # então não há SSH aberto para o pipeline nem credenciais da VPS no GitHub.
+    runs-on: [self-hosted, producao]
+    environment:
+      name: production
+      url: ${{ vars.APP_URL || 'https://pizzafredda.com.br' }}
+    concurrency:
+      group: deploy-producao
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
+    env:
+      ENV_FILE: /opt/fredda/.env
+      BACKUP_DIR: /opt/fredda/backups
+      APP_URL: ${{ vars.APP_URL || 'https://pizzafredda.com.br' }}
+      IMAGE_TAG: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Confere a configuração de produção
+        run: |
+          test -f "$ENV_FILE" || { echo "::error::$ENV_FILE não existe na VPS"; exit 1; }
+          for var in NEXTAUTH_SECRET MYSQL_PASSWORD METRICS_TOKEN GRAFANA_ADMIN_PASSWORD IA_API_KEY; do
+            grep -qE "^${var}=(\"[^\"]+\"|[^\"].*)$" "$ENV_FILE" || { echo "::error::$var não definida em $ENV_FILE"; exit 1; }
+          done
+          echo "IMAGE_REGISTRY=ghcr.io/${OWNER,,}" >> "$GITHUB_ENV"
+        env:
+          OWNER: ${{ github.repository_owner }}
+
+      - name: Login no GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Backup do banco antes do deploy
+        run: |
+          mkdir -p "$BACKUP_DIR"
+          if docker ps --format '{{.Names}}' | grep -qx fredda_db; then
+            arquivo="$BACKUP_DIR/fredda-$(date +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}.sql.gz"
+            docker exec fredda_db sh -c 'exec mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --single-transaction --routines "$MYSQL_DATABASE"' | gzip > "$arquivo"
+            test "$(gzip -dc "$arquivo" | head -c 1000 | wc -c)" -gt 0 || { echo "::error::backup vazio"; exit 1; }
+            echo "Backup: $arquivo ($(du -h "$arquivo" | cut -f1))"
+            ls -1t "$BACKUP_DIR"/fredda-*.sql.gz | tail -n +8 | xargs -r rm -- # mantém os 7 mais recentes
+          else
+            echo "Banco ainda não está rodando; backup pulado."
+          fi
+
+      - name: Atualiza os containers
+        run: |
+          compose="docker compose --env-file $ENV_FILE --profile observabilidade"
+          $compose pull app ia prometheus grafana node-exporter
+          $compose up -d --no-build
+          # Recarrega as configurações versionadas (alvos, alertas e dashboard) do novo commit
+          $compose restart prometheus grafana
+          $compose ps
+
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 5 "$APP_URL/api/health"; then echo; echo "App respondendo em $APP_URL"; exit 0; fi
+            sleep 5
+          done
+          echo "::error::$APP_URL/api/health não respondeu 200 em 150s"
+          docker logs --tail 80 fredda_app
+          exit 1
+
+      - name: Limpa imagens antigas
+        if: always()
+        run: docker image prune -f
+
+  wiki:
+    name: Publica a Wiki
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # necessário para enviar ao repositório da Wiki
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sincroniza docs/wiki com a Wiki do GitHub
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ! git clone "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.wiki.git" wiki; then
+            echo "::error::Wiki não encontrada. Ative a Wiki e crie a primeira página pela interface do GitHub."
+            exit 1
+          fi
+          find wiki -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -r docs/wiki/. wiki/
+          cd wiki
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "Wiki já atualizada."; exit 0; fi
+          git commit -m "Atualiza a Wiki a partir de ${GITHUB_SHA::7}"
+          git push

@@ -1,11 +1,17 @@
 # 🍕 Fredda Pizzaria — Sistema de Gestão
 
+[![CI/CD](https://github.com/DiegoPlaninscheck/fredda-pizzaria/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/DiegoPlaninscheck/fredda-pizzaria/actions/workflows/ci-cd.yml)
+[![CodeQL](https://github.com/DiegoPlaninscheck/fredda-pizzaria/actions/workflows/codeql.yml/badge.svg)](https://github.com/DiegoPlaninscheck/fredda-pizzaria/actions/workflows/codeql.yml)
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=DiegoPlaninscheck_fredda-pizzaria&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=DiegoPlaninscheck_fredda-pizzaria)
+
 <img src="public/fredda_pizzaria.png" alt="Fredda Pizzaria" width="96" />
 
 Sistema web de gestão operacional desenvolvido para pizzarias especializadas em massas de longa fermentação. Integra controle de estoque de insumos, acompanhamento do processo produtivo com rastreamento de fermentação e previsão de demanda baseada em inteligência artificial.
 
 > Projeto de portfólio — Engenharia de Software, Católica SC, 2026  
 > Autor: Diego Planinscheck
+
+**🌐 Produção:** https://pizzafredda.com.br · **📚 [Wiki](https://github.com/DiegoPlaninscheck/fredda-pizzaria/wiki)**: [requisitos](https://github.com/DiegoPlaninscheck/fredda-pizzaria/wiki/Requisitos), [user stories](https://github.com/DiegoPlaninscheck/fredda-pizzaria/wiki/User-Stories), [casos de uso](https://github.com/DiegoPlaninscheck/fredda-pizzaria/wiki/Casos-de-Uso), [arquitetura C4](https://github.com/DiegoPlaninscheck/fredda-pizzaria/wiki/Arquitetura), [decisões técnicas](https://github.com/DiegoPlaninscheck/fredda-pizzaria/wiki/Decisoes-Tecnicas), [deploy](https://github.com/DiegoPlaninscheck/fredda-pizzaria/wiki/Deploy-e-Infraestrutura), [observabilidade](https://github.com/DiegoPlaninscheck/fredda-pizzaria/wiki/Observabilidade) e [qualidade](https://github.com/DiegoPlaninscheck/fredda-pizzaria/wiki/Qualidade). As páginas ficam versionadas em [`docs/wiki/`](docs/wiki/).
 
 ---
 
@@ -163,7 +169,9 @@ A área autenticada foi adaptada para uso em celular:
 | IA / Previsão | Python (FastAPI + scikit-learn) |
 | Proxy HTTPS | [Caddy](https://caddyserver.com/) (certificado automático) |
 | Hospedagem | VPS (Hostinger) |
-| CI/CD | GitHub Actions *(planejado — Sprint 8)* |
+| CI/CD | GitHub Actions + GHCR, deploy por runner self-hosted na VPS |
+| Qualidade e segurança | SonarCloud, CodeQL, Dependabot |
+| Observabilidade | Prometheus + Grafana (métricas técnicas e de negócio, alertas) |
 
 ---
 
@@ -251,17 +259,19 @@ docker compose exec app npm run db:seed
 
 Para expor o app com HTTPS (necessário para o webhook do WhatsApp), suba também o Caddy: `docker compose --profile https up -d` (veja [Configurar o WhatsApp](#configurar-o-whatsapp-meta-cloud-api)).
 
-### Deploy em produção (VPS)
+Para subir também o monitoramento (Prometheus + Grafana em http://localhost:3001), defina `METRICS_TOKEN` e `GRAFANA_ADMIN_PASSWORD` no `.env` e use `docker compose --profile observabilidade up --build -d` (veja [Observabilidade](https://github.com/DiegoPlaninscheck/fredda-pizzaria/wiki/Observabilidade)).
 
-O projeto está preparado para rodar em qualquer VPS com Docker (testado na Hostinger). O app fica publicado só em `127.0.0.1:3000` e o acesso externo passa pelo Caddy, com HTTPS:
+### Deploy em produção (pipeline CI/CD)
 
-1. Aponte um domínio (registro A) para o IP da VPS.
-2. Clone o repositório no servidor e configure o `.env`: senhas fortes do MySQL, `NEXTAUTH_SECRET`, `DOMINIO` com o domínio, `NEXTAUTH_URL="https://<seu domínio>"` e `IA_API_KEY`.
-3. Libere as portas do Caddy no firewall: `ufw allow 80/tcp && ufw allow 443/tcp`. A porta 3000 **não** precisa (nem deve) ser aberta.
-4. `docker compose --profile https up --build -d`: builda as imagens, sobe MySQL, app, `ia` e Caddy, aplica as migrations e emite o certificado sozinho.
-5. Treine o primeiro modelo de previsão (comando no [`ia/README.md`](ia/README.md#microsserviço-fastapi)).
+O deploy é **automático**: cada push na `main` passa pelo pipeline [`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml):
 
-Todos os serviços usam `restart: unless-stopped`, então a aplicação volta sozinha após um reboot do servidor. **Não** use o `docker-compose.dev.yml` na VPS: ele expõe a porta do banco.
+1. **CI:** lint, checagem de tipos e build do Next.js; testes do serviço de previsão; análise no SonarCloud (e CodeQL em paralelo).
+2. **Imagens:** as imagens do app e da IA são publicadas no GHCR, marcadas com o commit.
+3. **Deploy:** um runner do GitHub Actions instalado na VPS faz backup do banco, baixa as imagens, recria os containers (`app`, `ia`, `db`, Prometheus, Grafana) e testa `/api/health`. Se o teste falhar, o job falha.
+
+Ninguém acessa a VPS para publicar uma versão, e o rollback é rodar de novo o deploy de um commit anterior. O provisionamento inicial da VPS (Caddy no host, usuário e runner, `/opt/fredda/.env`), as variáveis obrigatórias e o procedimento de rollback estão em [Deploy e Infraestrutura](https://github.com/DiegoPlaninscheck/fredda-pizzaria/wiki/Deploy-e-Infraestrutura).
+
+Em produção, o app e o Grafana escutam só em `127.0.0.1` e o acesso externo passa pelo Caddy, com HTTPS; libere apenas as portas 80 e 443. Todos os serviços usam `restart: unless-stopped`. **Não** use o `docker-compose.dev.yml` na VPS: ele expõe a porta do banco.
 
 > A imagem gera o Prisma Client com `binaryTargets = ["native", "linux-musl-openssl-3.0.x"]` no `schema.prisma`, necessário para rodar corretamente em containers Alpine.
 
@@ -271,6 +281,10 @@ Todos os serviços usam `restart: unless-stopped`, então a aplicação volta so
 
 ```
 fredda-pizzaria/
+├── .github/
+│   ├── workflows/ci-cd.yml         # Pipeline: lint, tipos, build, testes, Sonar, imagens, deploy e Wiki
+│   ├── workflows/codeql.yml        # Análise de segurança (CodeQL)
+│   └── dependabot.yml              # Atualização automática de dependências
 ├── app/
 │   ├── (auth)/                     # Rotas públicas
 │   │   └── login/                  # Página de login
@@ -309,6 +323,8 @@ fredda-pizzaria/
 │   │   ├── whatsapp/webhook/       # Webhook da Meta (verificação + mensagens recebidas)
 │   │   ├── whatsapp/twilio/        # Webhook da Twilio (Sandbox do WhatsApp)
 │   │   ├── chatbot/simulador/      # Atendimento simulado (telefones 000…, sem envio à Meta)
+│   │   ├── health/                 # Health check público (app + banco), usado pelo deploy
+│   │   ├── metrics/                # Métricas para o Prometheus (exige METRICS_TOKEN)
 │   │   ├── planejamento/           # GET/PUT do plano da semana; sugestao/, comparacao/, modelo/ (retreino, ADMIN)
 │   │   └── ordens/                 # GET, POST, PATCH (conclusão repõe estoque de produto pronto)
 │   │       └── [id]/etapas/[etapaId]/
@@ -343,7 +359,13 @@ fredda-pizzaria/
 │   │   ├── mensagens.ts            # Textos e limites das mensagens interativas
 │   │   ├── conversas.ts            # Histórico e estado das conversas
 │   │   └── notificar.ts            # Avisos de status ao cliente (janela de 24h)
+│   ├── metricas.ts                 # Métricas do Prometheus (Node + negócio)
 │   └── prisma.ts                   # Singleton do PrismaClient
+├── observabilidade/
+│   ├── prometheus.yml              # Alvos de coleta
+│   ├── alertas.yml                 # Regras de alerta
+│   └── grafana/                    # Datasource e dashboard provisionados
+├── docs/wiki/                      # Páginas da Wiki (publicadas pelo pipeline)
 ├── prisma/
 │   ├── schema.prisma               # 20 models (resumo na seção abaixo)
 │   ├── migrations/                 # Histórico de migrations
@@ -359,7 +381,8 @@ fredda-pizzaria/
 │   └── next-auth.d.ts              # Extensão de tipos (id, role na sessão)
 ├── middleware.ts                   # Proteção de rotas autenticadas
 ├── Caddyfile                       # Proxy HTTPS (perfil "https" do docker-compose)
-├── docker-compose.yml              # db, app, ia e caddy (perfil "https")
+├── docker-compose.yml              # db, app, ia; perfis "observabilidade" e "https"
+├── sonar-project.properties        # Configuração do SonarCloud
 ├── docker-compose.dev.yml          # Dev local: publica o MySQL em 127.0.0.1:3306
 ├── Dockerfile                      # Build multi-stage + Prisma Client para Alpine (musl)
 ├── docker-entrypoint.sh            # Aplica migrations automaticamente antes de iniciar o server
@@ -477,9 +500,12 @@ PlanoProducaoItem    — id, planoId, receitaId, previsao, limiteInferior, limit
 
 ## 🔗 Links úteis
 
+- [Ambiente de produção](https://pizzafredda.com.br)
+- [Wiki do projeto](https://github.com/DiegoPlaninscheck/fredda-pizzaria/wiki)
+- [Dashboard de observabilidade (Grafana)](https://grafana.pizzafredda.com.br) *(com login)*
+- [SonarCloud](https://sonarcloud.io/summary/new_code?id=DiegoPlaninscheck_fredda-pizzaria)
 - [Jira — Gerenciamento do projeto](https://diegoplanichek.atlassian.net)
 - [API do microsserviço de previsão](ia/README.md#microsserviço-fastapi) (documentação interativa em `/docs` com o serviço rodando)
-- Ambiente de produção *(Sprint 8)*
 
 ---
 

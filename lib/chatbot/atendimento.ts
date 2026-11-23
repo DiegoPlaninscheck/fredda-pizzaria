@@ -6,6 +6,7 @@ import {
 } from '@/lib/chatbot/fluxo'
 import { responderComIA } from '@/lib/chatbot/agente'
 import { botoes, LIMITES, paraTranscricao, texto, type MensagemSaida, type Opcao } from '@/lib/chatbot/mensagens'
+import { metricas } from '@/lib/metricas'
 
 export interface MensagemRecebida {
   telefone: string
@@ -87,14 +88,18 @@ export async function atenderMensagem(msg: MensagemRecebida): Promise<MensagemSa
     })
 
     if (ia) {
+      metricas.chatbotMensagens.inc({ origem: 'ia' })
       if (ia.criouPedido) estado = estadoInicial()
       saidas = ia.chamouAtendente ? [texto(ia.texto)] : respostaDaIAComBotoes(ia.texto, estado)
     } else {
+      metricas.chatbotMensagens.inc({ origem: 'fallback' })
       // Sem IA (ou com falha): explica e repete a pergunta da etapa atual
       const pergunta = await promptEtapa(estado, ctx)
       const temOpcoes = pergunta.some((m) => m.tipo !== 'texto')
       saidas = [texto(temOpcoes ? 'Desculpe, não entendi 🤔 Escolha uma das opções abaixo:' : 'Desculpe, não entendi 🤔'), ...pergunta]
     }
+  } else {
+    metricas.chatbotMensagens.inc({ origem: 'fluxo' })
   }
 
   await prisma.conversa.update({
