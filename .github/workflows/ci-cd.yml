@@ -91,7 +91,7 @@ jobs:
       - name: SonarCloud
         # PRs de fork não recebem secrets: a análise é pulada em vez de falhar
         if: env.SONAR_TOKEN != ''
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v8
         env:
           SONAR_HOST_URL: https://sonarcloud.io
 
