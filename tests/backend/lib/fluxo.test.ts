@@ -196,8 +196,8 @@ describe('fluxo guiado de pedidos pelo WhatsApp', () => {
     })
     const pedidoOutro = await prisma.pedido.create({ data: { clienteId: outro.id, tipoEntrega: 'RETIRADA', valorTotal: 10 } })
 
-    let r = await c.enviar('oi')
-    r = await c.enviar('meus pedidos')
+    await c.enviar('oi')
+    let r = await c.enviar('meus pedidos')
     expect(textoDe(r.saidas)).toMatch(new RegExp(`\\*#${pedidoAna.id}\\*[\\s\\S]*1x Margherita[\\s\\S]*Aguardando confirmação`))
     expect(textoDe(r.saidas)).not.toContain(`#${pedidoOutro.id}`)
     expect(opcoesDe(r.saidas)[0].id).toBe(`cancelarpedido:${pedidoAna.id}`)
