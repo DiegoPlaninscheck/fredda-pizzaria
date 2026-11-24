@@ -5,6 +5,7 @@ export const config = {
     '/dashboard/:path*',
     '/vendas/:path*',
     '/pedidos/:path*',
+    '/planejamento/:path*',
     '/producao/:path*',
     '/receitas/:path*',
     '/estoque/:path*',
