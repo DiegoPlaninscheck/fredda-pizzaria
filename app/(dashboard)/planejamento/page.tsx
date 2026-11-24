@@ -166,8 +166,10 @@ export default function PlanejamentoPage() {
     const dados = await res.json()
     setTreinando(false)
     if (!res.ok) { setErro(dados.error ?? 'Erro ao retreinar o modelo'); return }
+    // Recarrega a sugestão com o modelo novo antes de mostrar a confirmação:
+    // carregar() limpa as mensagens da tela
+    await carregar(semana)
     setMensagem(`Modelo retreinado: ${NOMES_METODO[dados.modelo_ativo] ?? dados.modelo_ativo}.`)
-    carregar(semana)
   }
 
   const alterado = plano
