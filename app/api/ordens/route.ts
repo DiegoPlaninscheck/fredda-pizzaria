@@ -75,33 +75,30 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Uma ou mais receitas não foram encontradas' }, { status: 404 })
   }
 
-  // Verifica estoque dos insumos apenas para gerar aviso — não bloqueia a criação da ordem
-  const insuficientes: { receita: string; nome: string; necessario: string; disponivel: string }[] = []
-  for (const item of itens) {
-    const receita = receitasEncontradas.find((r) => r.id === item.receitaId)!
-    for (const ri of receita.insumos) {
-      const necessario = new Decimal(ri.quantidade).mul(item.quantidade)
-      const disponivel = new Decimal(ri.insumo.estoqueAtual)
-      if (disponivel.lt(necessario)) {
-        insuficientes.push({
-          receita: receita.nome,
-          nome: ri.insumo.nome,
-          necessario: necessario.toFixed(3),
-          disponivel: disponivel.toFixed(3),
-        })
-      }
-    }
-  }
-
   // Consumo total de cada insumo, somando todas as receitas da ordem
   const consumo = new Map<string, InstanceType<typeof Decimal>>()
+  const usoPorInsumo = new Map<string, { nome: string; disponivel: InstanceType<typeof Decimal>; receitas: string[] }>()
   for (const item of itens) {
     const receita = receitasEncontradas.find((r) => r.id === item.receitaId)!
     for (const ri of receita.insumos) {
       const necessario = new Decimal(ri.quantidade).mul(item.quantidade)
       consumo.set(ri.insumoId, (consumo.get(ri.insumoId) ?? new Decimal(0)).add(necessario))
+      const uso = usoPorInsumo.get(ri.insumoId) ?? { nome: ri.insumo.nome, disponivel: new Decimal(ri.insumo.estoqueAtual), receitas: [] }
+      uso.receitas.push(receita.nome)
+      usoPorInsumo.set(ri.insumoId, uso)
     }
   }
+
+  // Aviso de falta pelo consumo total da ordem (não bloqueia a criação): cada receita
+  // pode caber no estoque sozinha e, somadas, não caberem.
+  const insuficientes = Array.from(usoPorInsumo)
+    .filter(([insumoId, uso]) => uso.disponivel.lt(consumo.get(insumoId)!))
+    .map(([insumoId, uso]) => ({
+      receita: uso.receitas.join(', '),
+      nome: uso.nome,
+      necessario: consumo.get(insumoId)!.toFixed(3),
+      disponivel: uso.disponivel.toFixed(3),
+    }))
 
   const ordem = await prisma.$transaction(async (tx) => {
     const criada = await tx.ordemProducao.create({

@@ -53,6 +53,19 @@ export function intervaloUtc(semana: string): { inicio: Date; fim: Date } {
   return { inicio, fim: new Date(inicio.getTime() + 7 * DIA_MS) }
 }
 
+/**
+ * Início (00:00) e fim (23:59:59.999) de um dia 'YYYY-MM-DD' no horário da pizzaria,
+ * para filtros por período. `new Date('YYYY-MM-DD')` seria meia-noite em UTC (21h da
+ * véspera em Brasília) e deixaria de fora as vendas da noite do último dia.
+ */
+export function inicioDoDia(dia: string): Date {
+  return new Date(Date.parse(`${dia}T00:00:00Z`) + FUSO_HORAS * 60 * 60 * 1000)
+}
+
+export function fimDoDia(dia: string): Date {
+  return new Date(inicioDoDia(dia).getTime() + DIA_MS - 1)
+}
+
 export function formatarSemana(semana: string): string {
   const [a, m, d] = semana.split('-')
   const [a2, m2, d2] = adicionarDias(semana, 6).split('-')

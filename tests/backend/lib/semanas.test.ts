@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  adicionarDias, adicionarSemanas, dataParaSemana, formatarSemana, intervaloUtc,
+  adicionarDias, adicionarSemanas, dataParaSemana, fimDoDia, formatarSemana, inicioDoDia, intervaloUtc,
   segundaDaSemana, semanaParaData, semanasEntre, validarSemana,
 } from '@/lib/semanas'
 
@@ -42,6 +42,11 @@ describe('semanas de planejamento (segunda a domingo, horário de Brasília)', (
     const data = semanaParaData('2026-11-23')
     expect(data.toISOString()).toBe('2026-11-23T00:00:00.000Z')
     expect(dataParaSemana(data)).toBe('2026-11-23')
+  })
+
+  it('início e fim de um dia no horário de Brasília, para filtros por período', () => {
+    expect(inicioDoDia('2026-11-20').toISOString()).toBe('2026-11-20T03:00:00.000Z')
+    expect(fimDoDia('2026-11-20').toISOString()).toBe('2026-11-21T02:59:59.999Z')
   })
 
   it('formata o período, mostrando o ano duas vezes só na virada de ano', () => {

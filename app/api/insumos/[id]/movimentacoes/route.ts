@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { TipoMovimentacao } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library'
 import { baixarEstoqueInsumo, EstoqueInsuficienteError } from '@/lib/estoque'
+import { fimDoDia, inicioDoDia } from '@/lib/semanas'
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const session = await exigirSessao()
@@ -35,14 +36,14 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   if (tipo && Object.values(TipoMovimentacao).includes(tipo)) {
     resultado = resultado.filter((m) => m.tipo === tipo)
   }
+  // Dias do período no horário de Brasília, independente do fuso do servidor
   if (dataInicio) {
-    const inicio = new Date(dataInicio)
-    resultado = resultado.filter((m) => new Date(m.createdAt) >= inicio)
+    const inicio = inicioDoDia(dataInicio)
+    resultado = resultado.filter((m) => m.createdAt >= inicio)
   }
   if (dataFim) {
-    const fim = new Date(dataFim)
-    fim.setHours(23, 59, 59, 999)
-    resultado = resultado.filter((m) => new Date(m.createdAt) <= fim)
+    const fim = fimDoDia(dataFim)
+    resultado = resultado.filter((m) => m.createdAt <= fim)
   }
 
   // Carrega includes apenas para o resultado filtrado
