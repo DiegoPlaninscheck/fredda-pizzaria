@@ -23,12 +23,22 @@ concurrency:
 
 jobs:
   web:
-    name: App Next.js (lint, tipos e build)
+    name: App Next.js (lint, tipos, testes e build)
     runs-on: ubuntu-latest
+    # Banco MySQL descartável para os testes do backend (o build não acessa o banco)
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_DATABASE: fredda_test
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -prootpassword"
+          --health-interval=5s --health-timeout=5s --health-retries=20
     env:
-      # Valores fictícios: o build não acessa o banco
-      DATABASE_URL: mysql://ci:ci@localhost:3306/ci
-      NEXTAUTH_SECRET: segredo-somente-para-o-build-do-ci
+      DATABASE_URL: mysql://root:rootpassword@127.0.0.1:3306/fredda_test
+      NEXTAUTH_SECRET: segredo-somente-para-o-ci
       NEXTAUTH_URL: http://localhost:3000
       NEXT_TELEMETRY_DISABLED: 1
     steps:
@@ -45,6 +55,14 @@ jobs:
         run: npm run lint
       - name: Checagem de tipos
         run: ./node_modules/.bin/tsc --noEmit
+      # Falha se a cobertura ficar abaixo da meta da linha Web Apps (75% backend / 25% frontend)
+      - name: Testes com cobertura
+        run: npm run test:cov
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cobertura-web
+          path: coverage/lcov.info
+          retention-days: 7
       - uses: actions/cache@v4
         with:
           path: .next/cache
@@ -90,6 +108,10 @@ jobs:
         with:
           name: cobertura-ia
           path: ia
+      - uses: actions/download-artifact@v4
+        with:
+          name: cobertura-web
+          path: coverage
       - name: SonarCloud
         # PRs de fork não recebem secrets: a análise é pulada em vez de falhar
         if: env.SONAR_TOKEN != ''
