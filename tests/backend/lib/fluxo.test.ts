@@ -178,7 +178,7 @@ describe('fluxo guiado de pedidos pelo WhatsApp', () => {
     await c.tocar('carrinho:finalizar')
     await c.tocar('entrega:RETIRADA')
     await c.tocar('pag:PIX')
-    r = await c.tocar('confirmar:alterar')
+    await c.tocar('confirmar:alterar')
     expect(c.estado.etapa).toBe('CARRINHO')
     await c.tocar('carrinho:finalizar')
     await c.tocar('entrega:RETIRADA')
