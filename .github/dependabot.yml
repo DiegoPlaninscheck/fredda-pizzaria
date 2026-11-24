@@ -9,6 +9,10 @@ updates:
     groups:
       dependencias-menores:
         update-types: [minor, patch]
+    ignore:
+      # Os tipos do Node acompanham a linha LTS do .nvmrc (troca manual, junto com o Dockerfile)
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: pip
     directory: /ia
@@ -23,6 +27,10 @@ updates:
     directories: [/, /ia]
     schedule:
       interval: weekly
+    ignore:
+      # Node fica numa linha LTS escolhida (.nvmrc = Dockerfile = CI); a troca de major é manual
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /

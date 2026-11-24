@@ -2,7 +2,7 @@
 
 ## 1. Ambiente local
 
-Pré-requisitos: Node.js 20+, Docker e (opcional) Python 3.12 para a previsão de demanda.
+Pré-requisitos: Node.js 24 LTS (versão no `.nvmrc`), Docker e (opcional) Python 3.12 para a previsão de demanda.
 
 ```bash
 git clone https://github.com/DiegoPlaninscheck/fredda-pizzaria.git

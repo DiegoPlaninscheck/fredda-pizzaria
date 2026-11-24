@@ -77,7 +77,7 @@ flowchart TB
 | Container | Tecnologia | Responsabilidade | Exposição |
 |---|---|---|---|
 | Caddy | Caddy 2 (host) | Termina o TLS de `pizzafredda.com.br` e `grafana.pizzafredda.com.br` | 80/443 públicas |
-| App web | Next.js 14 (Node 20) | Interface, API REST, autenticação, webhooks e chatbot | `127.0.0.1:3000` |
+| App web | Next.js 14 (Node 24) | Interface, API REST, autenticação, webhooks e chatbot | `127.0.0.1:3000` |
 | Serviço de previsão | FastAPI + scikit-learn | `/previsao`, `/treinar`, `/modelo`, `/saude`, `/metrics` | só na rede interna |
 | Banco | MySQL 8 | Persistência (volume `mysql_data`) | só na rede interna |
 | Prometheus | Prometheus 2.55 | Coleta a cada 30 s, retenção de 15 dias, regras de alerta | só na rede interna |

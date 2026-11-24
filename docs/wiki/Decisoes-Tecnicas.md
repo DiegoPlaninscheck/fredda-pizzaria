@@ -18,6 +18,7 @@ Registro das principais decisões de arquitetura, no formato *Architecture Decis
 | [012](#adr-012--análise-estática-com-sonarcloud--codeql) | Análise estática com SonarCloud + CodeQL | Aceita |
 | [013](#adr-013--documentação-versionada-publicada-na-wiki) | Documentação versionada, publicada na Wiki | Aceita |
 | [014](#adr-014--testes-com-vitest-contra-mysql-real-mocks-só-nas-fronteiras) | Testes com Vitest contra MySQL real, mocks só nas fronteiras | Aceita |
+| [015](#adr-015--uma-única-versão-do-node-lts-em-todo-o-projeto) | Uma única versão do Node (LTS) em todo o projeto | Aceita |
 
 ---
 
@@ -92,3 +93,8 @@ Registro das principais decisões de arquitetura, no formato *Architecture Decis
 **Decisão.** Vitest com dois projetos: backend (Node) contra um banco MySQL `fredda_test` com as migrations reais, executado em série; frontend (jsdom) com Testing Library. Só as fronteiras externas são simuladas: `fetch` (WhatsApp, Twilio, serviço de IA), SDK da Anthropic e sessão do NextAuth. Os limites de cobertura ficam em `vitest.config.mts` e falham o CI.
 **Alternativas.** Prisma mockado (`vitest-mock-extended`): mais rápido e sem Docker, mas verifica chamadas em vez de resultados e quebra a cada refatoração. Jest: mais lento e com configuração extra para ESM/TypeScript.
 **Consequências.** A suíte roda em cerca de 1 minuto e precisa de um MySQL (Docker local; serviço no GitHub Actions). Em troca, testa o comportamento real, inclusive concorrência, e já encontrou seis bugs (ver [Qualidade](Qualidade#tdd-e-bugs-encontrados)). O setup recusa rodar em banco sem o sufixo `_test`.
+
+### ADR-015 — Uma única versão do Node (LTS) em todo o projeto
+**Contexto.** Em 23/11/2026 o deploy falhou no `npm ci` do CI. As bibliotecas de teste instaladas (jsdom 31, jest-dom 8, plugin-react 6) exigem Node ≥ 22/24 e Vitest 5, mas o projeto estava com Vitest 3 e o CI e o Docker em Node 20 (fora de suporte desde abril de 2026). O npm 11 local aceitou a árvore; o `npm ci` estrito do CI recusou. O paliativo (`legacy-peer-deps=true` e Node 22 só no CI) escondia conflitos de dependência no build de produção e deixava CI e Docker em versões diferentes.
+**Decisão.** Node 24 LTS (suporte até abril de 2028) em todo lugar, a partir de uma fonte única: o `.nvmrc`, lido pelo `setup-node` do CI. O `Dockerfile` usa `node:24-alpine` e o `package.json` declara `engines`. Dependências de teste alinhadas (Vitest 5, Vite 8, `@types/node` 24) e resolução estrita de peers (sem `legacy-peer-deps`). O Dependabot ignora majors do Node e do `@types/node`.
+**Consequências.** O que passa no `npm ci` local passa no CI e na imagem de produção. A troca de LTS vira uma decisão explícita, feita nos três lugares de uma vez.
