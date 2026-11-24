@@ -58,7 +58,7 @@ jobs:
       # Falha se a cobertura ficar abaixo da meta da linha Web Apps (75% backend / 25% frontend)
       - name: Testes com cobertura
         run: npm run test:cov
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: cobertura-web
           path: coverage/lcov.info
@@ -88,7 +88,7 @@ jobs:
       - run: "pip install --require-hashes --only-binary :all: -r requirements-dev.lock"
       - name: Testes com cobertura
         run: pytest --cov=previsao --cov=servico --cov-report=xml:coverage.xml --cov-report=term
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: cobertura-ia
           path: ia/coverage.xml
