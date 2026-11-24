@@ -175,6 +175,17 @@ describe('insumos e movimentações de estoque', () => {
     const periodo = await lerResposta(await movimentacoes.GET(requisicao('GET', '/x?dataInicio=2026-11-04&dataFim=2026-11-06'), params({ id: i.id })))
     expect(periodo.json.map((m: { saldoApos: string }) => m.saldoApos)).toEqual(['7.000'])
   })
+  it('filtro de período do histórico usa dias do horário de Brasília', async () => {
+    const u = await criarUsuario()
+    const i = await criarInsumo()
+    const mov = (data: string) => prisma.movimentacaoEstoque.create({ data: { tipo: 'ENTRADA', quantidade: 1, motivo: data, insumoId: i.id, usuarioId: u.id, createdAt: new Date(data) } })
+    await mov('2026-11-04T22:00:00-03:00') // véspera, à noite: fora
+    await mov('2026-11-05T23:30:00-03:00') // fim do dia: dentro
+    await mov('2026-11-06T00:10:00-03:00') // dia seguinte: fora
+    logarComo('OPERADOR', u.id)
+    const r = await lerResposta(await movimentacoes.GET(requisicao('GET', '/x?dataInicio=2026-11-05&dataFim=2026-11-05'), params({ id: i.id })))
+    expect(r.json.map((m: { motivo: string }) => m.motivo)).toEqual(['2026-11-05T23:30:00-03:00'])
+  })
 })
 
 describe('receitas (fichas técnicas)', () => {
