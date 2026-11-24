@@ -230,6 +230,17 @@ Acesse em [http://localhost:3000](http://localhost:3000)
 
 **Perfis:** `OPERADOR` faz a operação do dia a dia (movimentações, ordens, vendas, pedidos). Excluir/inativar fornecedores, categorias, insumos e receitas e cancelar vendas é exclusivo do `ADMIN`.
 
+### Testes
+
+Com o MySQL do passo 3 no ar:
+
+```bash
+npm test             # 264 testes (Vitest): backend contra o banco fredda_test + telas
+npm run test:cov     # com cobertura; falha abaixo de 75% no backend ou 25% no frontend
+```
+
+O banco de teste é criado e migrado sozinho (`.env.test`). Estratégia, cobertura atual e o histórico de TDD estão em [Qualidade](https://github.com/DiegoPlaninscheck/fredda-pizzaria/wiki/Qualidade).
+
 ### 6. (Opcional) Previsão de demanda
 
 Sem o microsserviço `ia` rodando, o sistema funciona normalmente, mas a tela de **Planejamento** avisa que não há previsão e o plano é feito à mão. Para usar a previsão em desenvolvimento, defina `IA_API_KEY` no `.env` e suba o serviço na porta 8000 (a mesma do `IA_URL` padrão), conforme o [`ia/README.md`](ia/README.md#microsserviço-fastapi):
@@ -377,6 +388,11 @@ fredda-pizzaria/
 ├── public/
 │   ├── fredda_pizzaria.png         # Logo / favicon
 │   └── marketing/                  # Artes usadas na landing page
+├── tests/
+│   ├── backend/                    # Vitest contra o MySQL fredda_test: lib/ (domínio) e api/ (rotas)
+│   └── frontend/                   # Vitest + Testing Library: componentes e telas
+├── vitest.config.mts               # Projetos backend/frontend e metas de cobertura (75% / 25%)
+├── .env.test                       # Variáveis dos testes (banco fredda_test, sem segredos)
 ├── types/
 │   └── next-auth.d.ts              # Extensão de tipos (id, role na sessão)
 ├── middleware.ts                   # Proteção de rotas autenticadas
@@ -492,8 +508,10 @@ PlanoProducaoItem    — id, planoId, receitaId, previsao, limiteInferior, limit
 - [x] Tela de comparação planejado x realizado
 
 ### Sprint 8 — Deploy e validação (semanas 15–16)
-- [ ] Pipeline CI/CD (GitHub Actions)
-- [ ] Deploy completo (app + IA) na VPS
+- [x] Pipeline CI/CD (GitHub Actions) com deploy automático na VPS
+- [x] Deploy completo (app + IA + observabilidade) na VPS
+- [x] Análise estática (SonarCloud, CodeQL) e Wiki com requisitos, C4 e ADRs
+- [x] Testes automatizados do app com TDD (backend ~98%, frontend ~34%)
 - [ ] Testes finais com o parceiro e documentação final
 
 ---

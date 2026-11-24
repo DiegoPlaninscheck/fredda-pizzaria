@@ -40,7 +40,7 @@ As histórias estão agrupadas por persona. Cada uma referencia os [requisitos](
 
 **US06 — Produzir um lote com rastreio da fermentação** (RF13–RF18)
 > Como operador, quero criar uma ordem com os sabores do dia e acompanhar cada etapa com timer, para não errar o tempo de fermentação.
-- A ordem só é criada se houver insumos suficientes; os insumos são baixados na criação.
+- Os insumos são baixados na criação. Se faltar algum (somando todas as receitas da ordem), a ordem é criada e eu vejo o aviso do que falta; a pré-visualização já mostra em vermelho o insumo que não dá conta.
 - As etapas seguem a ordem padrão, e só uma pode estar em andamento.
 - Posso pausar uma etapa e registrar temperatura e umidade.
 - Ao concluir a ordem, o estoque de pizzas prontas de cada sabor aumenta; ao cancelar, os insumos voltam.

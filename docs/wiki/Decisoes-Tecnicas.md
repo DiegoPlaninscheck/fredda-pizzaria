@@ -17,6 +17,7 @@ Registro das principais decisões de arquitetura, no formato *Architecture Decis
 | [011](#adr-011--observabilidade-com-prometheus--grafana) | Observabilidade com Prometheus + Grafana | Aceita |
 | [012](#adr-012--análise-estática-com-sonarcloud--codeql) | Análise estática com SonarCloud + CodeQL | Aceita |
 | [013](#adr-013--documentação-versionada-publicada-na-wiki) | Documentação versionada, publicada na Wiki | Aceita |
+| [014](#adr-014--testes-com-vitest-contra-mysql-real-mocks-só-nas-fronteiras) | Testes com Vitest contra MySQL real, mocks só nas fronteiras | Aceita |
 
 ---
 
@@ -79,9 +80,15 @@ Registro das principais decisões de arquitetura, no formato *Architecture Decis
 ### ADR-012 — Análise estática com SonarCloud + CodeQL
 **Contexto.** O núcleo comum exige análise estática de código e de segurança.
 **Decisão.** SonarCloud (qualidade, code smells, duplicação e cobertura importada do pytest) no job `sonar` do CI, e CodeQL (SAST) para TypeScript e Python em PRs, na `main` e semanalmente. Dependabot abre PRs de atualização.
-**Consequências.** Problemas aparecem no PR antes do merge. O quality gate ainda não bloqueia o deploy enquanto o app Next.js não tiver testes (cobertura 0% no código novo).
+**Consequências.** Problemas aparecem no PR antes do merge. O gate do Sonar é informativo; quem bloqueia por cobertura é o Vitest no job `web` (ADR-014).
 
 ### ADR-013 — Documentação versionada, publicada na Wiki
 **Contexto.** As regras pedem documentação na Wiki do repositório; editar só pela interface da Wiki tira a documentação do fluxo de revisão.
 **Decisão.** As páginas ficam em `docs/wiki/` no repositório, passam por PR como o código e são publicadas na Wiki pelo job `wiki` do pipeline. Diagramas em Mermaid, renderizados pelo próprio GitHub.
 **Consequências.** Documentação e código mudam juntos, no mesmo PR. Edições feitas direto na Wiki são sobrescritas no próximo push.
+
+### ADR-014 — Testes com Vitest contra MySQL real, mocks só nas fronteiras
+**Contexto.** A linha Web Apps exige TDD e 75%/25% de cobertura. Quase toda regra de negócio está em transações do Prisma (baixa atômica de estoque, transições de status filtradas no UPDATE), que um Prisma simulado não consegue provar.
+**Decisão.** Vitest com dois projetos: backend (Node) contra um banco MySQL `fredda_test` com as migrations reais, executado em série; frontend (jsdom) com Testing Library. Só as fronteiras externas são simuladas: `fetch` (WhatsApp, Twilio, serviço de IA), SDK da Anthropic e sessão do NextAuth. Os limites de cobertura ficam em `vitest.config.mts` e falham o CI.
+**Alternativas.** Prisma mockado (`vitest-mock-extended`): mais rápido e sem Docker, mas verifica chamadas em vez de resultados e quebra a cada refatoração. Jest: mais lento e com configuração extra para ESM/TypeScript.
+**Consequências.** A suíte roda em cerca de 1 minuto e precisa de um MySQL (Docker local; serviço no GitHub Actions). Em troca, testa o comportamento real, inclusive concorrência, e já encontrou seis bugs (ver [Qualidade](Qualidade#tdd-e-bugs-encontrados)). O setup recusa rodar em banco sem o sufixo `_test`.

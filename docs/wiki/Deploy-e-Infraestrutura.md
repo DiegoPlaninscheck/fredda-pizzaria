@@ -20,7 +20,7 @@ flowchart LR
     push(["Push na main"]) --> web & ia & wiki
     pr --> ia
     subgraph CI
-        web["web<br/>npm ci · prisma validate · lint ·<br/>tsc · next build"]
+        web["web<br/>npm ci · prisma validate · lint · tsc ·<br/>testes + cobertura (MySQL) · next build"]
         ia["ia<br/>pytest + cobertura"]
         sonar["sonar<br/>SonarCloud"]
     end
@@ -32,7 +32,7 @@ flowchart LR
 
 | Job | Quando | O que faz |
 |---|---|---|
-| `web` | PR e push | Instala as dependências, valida o schema do Prisma, roda o ESLint, checa os tipos e faz o build de produção |
+| `web` | PR e push | Instala as dependências, valida o schema do Prisma, roda o ESLint e a checagem de tipos, executa os testes do app contra um MySQL de serviço (falha abaixo da meta de cobertura; o `lcov` vai para o Sonar) e faz o build de produção |
 | `ia` | PR e push | Roda os testes do serviço de previsão com cobertura (`coverage.xml` vai para o Sonar) |
 | `sonar` | PR e push | Análise do SonarCloud (pulada em PRs de fork, que não recebem secrets) |
 | `imagens` | push na `main` | Builda as imagens `fredda-pizzaria-app` e `fredda-pizzaria-ia` e publica no GHCR com cache |
