@@ -121,6 +121,7 @@ O webhook (`/api/whatsapp/twilio`) valida a assinatura `X-Twilio-Signature` e pa
 **Limitações conhecidas:**
 - Pela regra do WhatsApp, mensagens livres (avisos de status, respostas da equipe) só podem ser enviadas até 24h depois da última mensagem do cliente. Fora dessa janela o aviso não é enviado e o painel informa. Enviar *templates* aprovados pela Meta fica para uma próxima etapa.
 - A fila que ordena as mensagens de cada cliente fica em memória, o que funciona com uma única instância do app (o cenário da VPS).
+- **O número real da pizzaria ainda não está ligado ao robô.** O dono atende pelo app WhatsApp Business, e manter o número no app e na API ao mesmo tempo (*Coexistência*) só é possível por um parceiro oficial da Meta. A ativação ficou para depois do Demo Day, com dois caminhos possíveis: Coexistência via parceiro ou migração do número para a Cloud API. Até lá, o fluxo é demonstrado pelo Sandbox da Twilio e pelo simulador. Detalhes no [ADR-016](https://github.com/DiegoPlaninscheck/fredda-pizzaria/wiki/Decisoes-Tecnicas#adr-016--número-real-do-whatsapp-adiado-para-depois-do-demo-day).
 
 ---
 
@@ -513,6 +514,10 @@ PlanoProducaoItem    — id, planoId, receitaId, previsao, limiteInferior, limit
 - [x] Análise estática (SonarCloud, CodeQL) e Wiki com requisitos, C4 e ADRs
 - [x] Testes automatizados do app com TDD (backend ~97%, frontend ~35%)
 - [ ] Testes finais com o parceiro e documentação final
+
+### Depois do Demo Day
+- [ ] WhatsApp no número real da pizzaria: verificação da empresa na Meta (CNPJ) e escolha entre Coexistência via parceiro ou migração do número para a Cloud API ([ADR-016](https://github.com/DiegoPlaninscheck/fredda-pizzaria/wiki/Decisoes-Tecnicas#adr-016--número-real-do-whatsapp-adiado-para-depois-do-demo-day))
+- [ ] Templates aprovados pela Meta para avisos fora da janela de 24h
 
 ---
 

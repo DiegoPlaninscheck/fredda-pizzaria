@@ -5,7 +5,7 @@
 | Ambiente | Onde | Como sobe | Dados |
 |---|---|---|---|
 | **Desenvolvimento** | Máquina do desenvolvedor | `npm run dev` + MySQL no Docker (`docker-compose.dev.yml`), ou tudo com `docker compose up --build` | Seed (`npm run db:seed`) e dados sintéticos para a IA |
-| **CI** | Runners do GitHub | A cada PR e push: build, lint, tipos, testes e análise | Nenhum (build sem banco) |
+| **CI** | Runners do GitHub | A cada PR e push: build, lint, tipos, testes e análise | MySQL de teste (`fredda_test`), criado e apagado a cada execução |
 | **Produção** | VPS Hostinger (Ubuntu 24.04), https://pizzafredda.com.br | Pipeline, a cada push na `main` | Banco real (volume `fredda-pizzaria_mysql_data`), com backup antes de cada deploy |
 
 As instruções para rodar localmente estão no [README](https://github.com/DiegoPlaninscheck/fredda-pizzaria#-como-rodar-localmente).

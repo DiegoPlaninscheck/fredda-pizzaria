@@ -19,6 +19,7 @@ Registro das principais decisões de arquitetura, no formato *Architecture Decis
 | [013](#adr-013--documentação-versionada-publicada-na-wiki) | Documentação versionada, publicada na Wiki | Aceita |
 | [014](#adr-014--testes-com-vitest-contra-mysql-real-mocks-só-nas-fronteiras) | Testes com Vitest contra MySQL real, mocks só nas fronteiras | Aceita |
 | [015](#adr-015--uma-única-versão-do-node-lts-em-todo-o-projeto) | Uma única versão do Node (LTS) em todo o projeto | Aceita |
+| [016](#adr-016--número-real-do-whatsapp-adiado-para-depois-do-demo-day) | Número real do WhatsApp adiado para depois do Demo Day | Adiada |
 
 ---
 
@@ -98,3 +99,8 @@ Registro das principais decisões de arquitetura, no formato *Architecture Decis
 **Contexto.** Em 23/11/2026 o deploy falhou no `npm ci` do CI. As bibliotecas de teste instaladas (jsdom 31, jest-dom 8, plugin-react 6) exigem Node ≥ 22/24 e Vitest 5, mas o projeto estava com Vitest 3 e o CI e o Docker em Node 20 (fora de suporte desde abril de 2026). O npm 11 local aceitou a árvore; o `npm ci` estrito do CI recusou. O paliativo (`legacy-peer-deps=true` e Node 22 só no CI) escondia conflitos de dependência no build de produção e deixava CI e Docker em versões diferentes.
 **Decisão.** Node 24 LTS (suporte até abril de 2028) em todo lugar, a partir de uma fonte única: o `.nvmrc`, lido pelo `setup-node` do CI. O `Dockerfile` usa `node:24-alpine` e o `package.json` declara `engines`. Dependências de teste alinhadas (Vitest 5, Vite 8, `@types/node` 24) e resolução estrita de peers (sem `legacy-peer-deps`). O Dependabot ignora majors do Node e do `@types/node`.
 **Consequências.** O que passa no `npm ci` local passa no CI e na imagem de produção. A troca de LTS vira uma decisão explícita, feita nos três lugares de uma vez.
+
+### ADR-016 — Número real do WhatsApp adiado para depois do Demo Day
+**Contexto.** O dono quer que o robô atenda no número que ele já usa no app WhatsApp Business. A Meta permite manter o número no app e na Cloud API ao mesmo tempo (*Coexistência*), mas esse vínculo só pode ser feito por um parceiro oficial (*Solution Partner* ou *Tech Provider*), não pelo app da própria empresa. Sobram dois caminhos: **(1) Coexistência via parceiro** (360dialog, Infobip etc.), em que o dono continua no app, com mensalidade, um adaptador novo e o webhook `smb_message_echoes` para o robô ficar em silêncio quando o dono responde pelo celular; ou **(2) migrar o número para a Cloud API**, sem custo fixo e sem mudar código (só o `.env`), em que o dono deixa o app e responde pelo painel (`/pedidos/conversas`) e o histórico do celular se perde. Os dois exigem a verificação da empresa no Meta Business, com o CNPJ.
+**Decisão.** Adiar a ativação do número real para depois das entregas e do Poster + Demo Day (16/12/2026), para não arriscar o prazo com aprovações da Meta. Até lá o fluxo é demonstrado pelo Sandbox da Twilio (ADR-007) e pelo simulador. A escolha entre (1) e (2) fica com o dono.
+**Consequências.** Nenhuma mudança de código agora. Ao retomar: verificação da empresa → escolha do caminho → no caminho 1, adaptador do parceiro e tratamento de `smb_message_echoes` com TDD; no caminho 2, cadastro do número, token permanente de usuário do sistema e webhook de produção.
