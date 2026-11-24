@@ -483,9 +483,14 @@ async function tratarTexto(textoOriginal: string, estado: EstadoFluxo, ctx: Cont
   const t = normalizar(textoOriginal)
   const naoEntendido: ResultadoFluxo = { estado, saidas: [], naoEntendido: true }
 
-  // Atalhos que valem em qualquer etapa
-  if (SAUDACAO.test(t) && contarPalavras(t) <= 4) return { estado, saidas: [await boasVindas(ctx)] }
+  // Atalhos que valem em qualquer etapa. "menu" vem antes da saudação (a regex de
+  // saudação também casa "menu"); os dois levam a etapa para o menu, guardando o carrinho,
+  // para que o próximo texto não seja lido como resposta da etapa anterior (ex.: o nome).
   if (/^(menu|inicio|voltar|comecar)$/.test(t)) return tratarOpcao('nav:menu', estado, ctx)
+  if (SAUDACAO.test(t) && contarPalavras(t) <= 4) {
+    estado.etapa = 'MENU'
+    return { estado, saidas: [await boasVindas(ctx)] }
+  }
   if (/\b(atendente|humano|pessoa de verdade)\b/.test(t) && contarPalavras(t) <= 6) return tratarOpcao('menu:atendente', estado, ctx)
 
   switch (estado.etapa) {

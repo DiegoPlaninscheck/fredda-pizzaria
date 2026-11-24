@@ -59,6 +59,14 @@ export default function NovaOrdemPage() {
     return qtd > 0 ? Number(insumo.quantidade) * qtd : 0
   }
 
+  /** Consumo do insumo somando todas as receitas marcadas (a mesma conta do aviso do servidor). */
+  function consumoTotal(insumoId: string) {
+    return receitasSelecionadas.reduce(
+      (total, r) => total + r.insumos.filter((ri) => ri.insumo.id === insumoId).reduce((s, ri) => s + necessidadeInsumo(ri, r.id), 0),
+      0
+    )
+  }
+
   async function salvar(e: React.FormEvent) {
     e.preventDefault()
     setErro('')
@@ -195,7 +203,7 @@ export default function NovaOrdemPage() {
                   {r.insumos.map((ri) => {
                     const necessario = necessidadeInsumo(ri, r.id)
                     const disponivel = Number(ri.insumo.estoqueAtual)
-                    const suficiente = disponivel >= necessario
+                    const suficiente = disponivel >= consumoTotal(ri.insumo.id)
                     return (
                       <div
                         key={ri.id}

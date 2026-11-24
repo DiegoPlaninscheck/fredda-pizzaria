@@ -20,10 +20,10 @@ O passo a passo completo (incluindo o serviço de IA e o ambiente 100% Docker) e
 
 1. Abra (ou escolha) uma *issue* descrevendo o problema ou a melhoria.
 2. Crie um branch a partir da `main`: `feat/descricao-curta`, `fix/…` ou `docs/…`.
-3. Faça commits pequenos, com mensagens no imperativo ("Adiciona…", "Corrige…").
-4. Antes de abrir o PR, rode localmente:
+3. Trabalhe em TDD: escreva o teste que descreve o comportamento (ele falha), faça o código passar e depois refatore. Para corrigir um bug, comece por um teste que o reproduz. Use commits pequenos, com mensagens no imperativo ("Adiciona…", "Corrige…").
+4. Antes de abrir o PR, rode localmente (o MySQL de dev precisa estar no ar para os testes):
    ```bash
-   npm run lint && npx tsc --noEmit && npm run build
+   npm run lint && npx tsc --noEmit && npm run test:cov && npm run build
    cd ia && pytest                         # se mexeu em ia/
    ```
 5. Abra o pull request para a `main`, referenciando a issue (`Fixes #N`). O CI roda sozinho.

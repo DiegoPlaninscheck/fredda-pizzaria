@@ -46,14 +46,14 @@ O ciclo fecha assim: as vendas (UC2, UC4) treinam a previsão → a previsão ge
 
 **Fluxo principal**
 1. O operador cria uma ordem com os sabores, as quantidades e a data prevista (ou a ordem vem do planejamento, UC3).
-2. O sistema calcula os insumos pela ficha técnica, confere o saldo e, numa transação, baixa os insumos e cria as 5 etapas de fermentação.
+2. O sistema soma o consumo de cada insumo pelas fichas técnicas e, numa transação, cria a ordem com as 5 etapas de fermentação e baixa os insumos (registrando a movimentação de saída).
 3. O operador inicia a primeira etapa; o timer começa a contar e a ordem passa a "Em andamento".
 4. Durante a etapa, o operador registra temperatura, umidade e observações.
 5. O operador conclui a etapa e inicia a seguinte, até o congelamento.
-6. Ao concluir a última etapa, o sistema conclui a ordem e soma o rendimento ao estoque de produto pronto de cada receita.
+6. Ao concluir a última etapa, o sistema conclui a ordem e soma as quantidades produzidas ao estoque de produto pronto de cada receita.
 
 **Fluxos alternativos**
-- 2a. Insumo insuficiente → a ordem não é criada e o sistema informa o que falta.
+- 2a. Insumo insuficiente para a ordem inteira (somando todas as receitas que o usam) → a ordem é criada mesmo assim, só o saldo existente é baixado e a tela mostra o aviso de falta por insumo. A falta não bloqueia: a compra pode chegar antes da etapa que usa o insumo.
 - 3a. Já existe uma etapa em andamento na ordem → o sistema recusa iniciar outra.
 - 5a. O operador pausa a etapa → o tempo decorrido é guardado e a ordem fica "Pausada".
 - 6a. O operador cancela a ordem → os insumos baixados são estornados. Uma ordem concluída ou cancelada não pode ser alterada.

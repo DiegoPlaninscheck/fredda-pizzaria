@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { exigirSessao } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import { baixarEstoqueReceita, EstoqueInsuficienteError } from '@/lib/estoque'
+import { fimDoDia, inicioDoDia } from '@/lib/semanas'
 
 export async function GET(req: Request) {
   const session = await exigirSessao()
@@ -19,14 +20,11 @@ export async function GET(req: Request) {
 
   if (receitaId) where.receitaId = receitaId
 
+  // Dias do período no horário de Brasília, independente do fuso do servidor
   if (dataInicio || dataFim) {
     where.dataVenda = {}
-    if (dataInicio) where.dataVenda.gte = new Date(dataInicio)
-    if (dataFim) {
-      const fim = new Date(dataFim)
-      fim.setHours(23, 59, 59, 999)
-      where.dataVenda.lte = fim
-    }
+    if (dataInicio) where.dataVenda.gte = inicioDoDia(dataInicio)
+    if (dataFim) where.dataVenda.lte = fimDoDia(dataFim)
   }
 
   const vendas = await prisma.venda.findMany({
