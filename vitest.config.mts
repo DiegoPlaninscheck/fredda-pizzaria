@@ -18,6 +18,8 @@ const FRONTEND = ['components/**', 'app/**/*.tsx']
 
 export default defineConfig({
   plugins: [tsconfigPaths(), react()],
+  // O tsconfig do Next usa "jsx": "preserve" (quem compila é o Next); nos testes, JSX automático
+  esbuild: { jsx: 'automatic' },
   test: {
     env: envTeste,
     projects: [
