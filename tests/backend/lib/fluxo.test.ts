@@ -43,7 +43,7 @@ describe('fluxo guiado de pedidos pelo WhatsApp', () => {
 
     r = await c.tocar('qtd:2')
     expect(c.estado.carrinho).toEqual([{ receitaId: margherita.id, nome: 'Margherita', preco: 42, quantidade: 2 }])
-    expect(textoDe(r.saidas)).toMatch(/Adicionei 2x Margherita.*Total: R\$\s84,00/s)
+    expect(textoDe(r.saidas)).toMatch(/Adicionei 2x Margherita[\s\S]*Total: R\$\s84,00/)
 
     r = await c.tocar('carrinho:finalizar')
     expect(c.estado.etapa).toBe('NOME') // primeiro pedido: pede o nome
@@ -62,7 +62,7 @@ describe('fluxo guiado de pedidos pelo WhatsApp', () => {
 
     r = await c.tocar('pag:PIX')
     expect(c.estado.etapa).toBe('CONFIRMAR')
-    expect(textoDe(r.saidas)).toMatch(/2x Margherita.*Total: R\$\s84,00.*Entrega em: Rua das Flores, 123 - Centro.*Pagamento: PIX/s)
+    expect(textoDe(r.saidas)).toMatch(/2x Margherita[\s\S]*Total: R\$\s84,00[\s\S]*Entrega em: Rua das Flores, 123 - Centro[\s\S]*Pagamento: PIX/)
 
     r = await c.tocar('confirmar:sim')
     const pedido = await prisma.pedido.findFirstOrThrow({ include: { itens: true } })
@@ -198,7 +198,7 @@ describe('fluxo guiado de pedidos pelo WhatsApp', () => {
 
     let r = await c.enviar('oi')
     r = await c.enviar('meus pedidos')
-    expect(textoDe(r.saidas)).toMatch(new RegExp(`\\*#${pedidoAna.id}\\*.*1x Margherita.*Aguardando confirmação`, 's'))
+    expect(textoDe(r.saidas)).toMatch(new RegExp(`\\*#${pedidoAna.id}\\*[\\s\\S]*1x Margherita[\\s\\S]*Aguardando confirmação`))
     expect(textoDe(r.saidas)).not.toContain(`#${pedidoOutro.id}`)
     expect(opcoesDe(r.saidas)[0].id).toBe(`cancelarpedido:${pedidoAna.id}`)
 

@@ -37,7 +37,8 @@ describe('assinatura do webhook da Meta (X-Hub-Signature-256)', () => {
 })
 
 describe('mensagens recebidas pelo webhook', () => {
-  const payload = (messages: unknown[], extra: object = {}) => ({
+  // Payload de teste no formato do webhook (tipado como any para montar casos parciais)
+  const payload = (messages: object[], extra: object = {}): any => ({
     entry: [{ changes: [{ field: 'messages', value: { contacts: [{ wa_id: '5547999990000', profile: { name: 'Ana' } }], messages, ...extra } }] }],
   })
 

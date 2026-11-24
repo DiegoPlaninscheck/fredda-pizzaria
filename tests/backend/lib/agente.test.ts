@@ -72,7 +72,7 @@ describe('IA do chatbot (plano B do atendimento)', () => {
     expect(params.system[0].cache_control).toEqual({ type: 'ephemeral' })
     expect(params.tools).toHaveLength(7)
     const ultima = params.messages.at(-1)
-    expect(ultima.content[0].text).toMatch(/<contexto>.*Nome no perfil do WhatsApp: Ana.*Etapa do menu: no menu principal.*<\/contexto>/s)
+    expect(ultima.content[0].text).toMatch(/<contexto>[\s\S]*Nome no perfil do WhatsApp: Ana[\s\S]*Etapa do menu: no menu principal[\s\S]*<\/contexto>/)
     expect(ultima.content[1].text).toBe('vocês entregam em Blumenau?')
 
     // O histórico da conversa cresce com o turno novo

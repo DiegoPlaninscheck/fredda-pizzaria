@@ -174,7 +174,7 @@ describe('mensagens do pedido', () => {
     expect(formatarMoeda(84).replace(/\s/g, ' ')).toBe('R$ 84,00')
     expect(resumoItens(pedido)).toMatch(/^2x Margherita \(R\$\s42,00\)$/)
     expect(mensagemDeStatus(pedido)).toBe(`Pedido #${pedido.id}: Aguardando confirmação`)
-    expect(mensagemDeStatus({ ...pedido, status: 'CONFIRMADO' })).toMatch(/confirmado!.*sair para entrega/s)
+    expect(mensagemDeStatus({ ...pedido, status: 'CONFIRMADO' })).toMatch(/confirmado![\s\S]*sair para entrega/)
     expect(mensagemDeStatus({ ...pedido, status: 'CONFIRMADO', tipoEntrega: 'RETIRADA' })).toMatch(/pronto para retirada/)
     expect(mensagemDeStatus({ ...pedido, status: 'ENTREGUE' })).toMatch(/entregue/)
     expect(mensagemDeStatus({ ...pedido, status: 'CANCELADO' })).toMatch(/foi cancelado/)
