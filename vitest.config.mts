@@ -32,10 +32,10 @@ export default defineConfig({
           globalSetup: ['tests/backend/global-setup.ts'],
           setupFiles: ['tests/backend/setup.ts'],
           // Um único banco de teste compartilhado: os arquivos rodam um de cada vez,
-          // num só processo (senão o beforeEach de um arquivo apaga os dados de outro)
+          // num só worker (senão o beforeEach de um arquivo apaga os dados de outro)
           fileParallelism: false,
           pool: 'forks',
-          poolOptions: { forks: { singleFork: true } },
+          maxWorkers: 1,
           testTimeout: 20_000,
           hookTimeout: 60_000,
         },

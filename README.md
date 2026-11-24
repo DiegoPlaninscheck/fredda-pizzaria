@@ -179,7 +179,7 @@ A área autenticada foi adaptada para uso em celular:
 
 ### Pré-requisitos
 
-- Node.js 20+
+- Node.js 24 LTS (versão no `.nvmrc`; com nvm: `nvm use`)
 - Docker e Docker Compose
 - Python 3.12+ *(opcional — só para rodar a previsão de demanda fora do Docker, veja o passo 6)*
 
@@ -511,7 +511,7 @@ PlanoProducaoItem    — id, planoId, receitaId, previsao, limiteInferior, limit
 - [x] Pipeline CI/CD (GitHub Actions) com deploy automático na VPS
 - [x] Deploy completo (app + IA + observabilidade) na VPS
 - [x] Análise estática (SonarCloud, CodeQL) e Wiki com requisitos, C4 e ADRs
-- [x] Testes automatizados do app com TDD (backend ~98%, frontend ~34%)
+- [x] Testes automatizados do app com TDD (backend ~97%, frontend ~35%)
 - [ ] Testes finais com o parceiro e documentação final
 
 ---

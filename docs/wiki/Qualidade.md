@@ -36,8 +36,8 @@ O SonarCloud usa o gate padrão (*Sonar way*) no código novo: nota A em seguran
 
 | Grupo | O que entra | Cobertura | Meta |
 |---|---|---|---|
-| Backend | `lib/`, `app/api/`, `middleware.ts` | **~98%** | 75% |
-| Frontend | `components/`, páginas e layouts (`app/**/*.tsx`) | **~34%** | 25% |
+| Backend | `lib/`, `app/api/`, `middleware.ts` | **~97%** | 75% |
+| Frontend | `components/`, páginas e layouts (`app/**/*.tsx`) | **~35%** | 25% |
 
 Os limites estão em `vitest.config.mts` (`coverage.thresholds`): abaixo deles, `npm run test:cov` falha localmente e no CI.
 

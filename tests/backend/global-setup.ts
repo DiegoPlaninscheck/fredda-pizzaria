@@ -16,8 +16,17 @@ export default function prepararBancoDeTeste() {
     )
   }
 
-  execSync('npx prisma migrate reset --force --skip-seed --skip-generate', {
-    stdio: 'pipe',
-    env: { ...process.env, DATABASE_URL: url },
-  })
+  try {
+    execSync('npx prisma migrate reset --force --skip-seed --skip-generate', {
+      stdio: 'pipe',
+      env: { ...process.env, DATABASE_URL: url },
+    })
+  } catch (e) {
+    // Mostra a mensagem do Prisma em texto (o erro do execSync traz só os bytes)
+    const saida = (e as { stderr?: Buffer }).stderr?.toString().trim()
+    throw new Error(
+      `Não foi possível preparar o banco de teste "${nomeBanco}".\n${saida ?? e}\n` +
+      'O MySQL está no ar? Localmente: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db'
+    )
+  }
 }
