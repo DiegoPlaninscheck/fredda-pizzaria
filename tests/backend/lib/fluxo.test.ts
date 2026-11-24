@@ -45,7 +45,7 @@ describe('fluxo guiado de pedidos pelo WhatsApp', () => {
     expect(c.estado.carrinho).toEqual([{ receitaId: margherita.id, nome: 'Margherita', preco: 42, quantidade: 2 }])
     expect(textoDe(r.saidas)).toMatch(/Adicionei 2x Margherita[\s\S]*Total: R\$\s84,00/)
 
-    r = await c.tocar('carrinho:finalizar')
+    await c.tocar('carrinho:finalizar')
     expect(c.estado.etapa).toBe('NOME') // primeiro pedido: pede o nome
 
     r = await c.enviar('ana souza')
