@@ -283,7 +283,7 @@ describe('fluxo guiado de pedidos pelo WhatsApp', () => {
     await c.tocar('qtd:1')
     let r = await c.enviar('menu')
     expect(textoDe(r.saidas)).toMatch(/Seu carrinho continua guardado/)
-    r = await c.tocar('menu:pedir')
+    await c.tocar('menu:pedir')
     expect(c.estado.etapa).toBe('CARRINHO')
     r = await c.tocar('nav:continuar')
     expect(textoDe(r.saidas)).toMatch(/Seu carrinho:\n- 1x Margherita/)
